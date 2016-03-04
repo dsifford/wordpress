@@ -1,0 +1,27 @@
+version: '2'
+services:
+    wordpress:
+        image: dsifford/wordpress 
+        links:
+            - db
+        ports:
+            - 8080:80
+            - 443:443
+        volumes:
+            - ./plugin:/app/wp-content/plugins/myplugin
+            - ./theme:/app/wp-content/themes/mytheme
+        environment:
+            DB_NAME: wordpress
+            DB_PASS: root # must match below
+    db: # Must be named 'db'
+        image: mysql:5.7
+        ports:
+            - 3306:3306
+        volumes_from:
+            - data
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+    data:
+        image: busybox
+        volumes:
+            - /var/lib/mysql
