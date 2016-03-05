@@ -1,7 +1,7 @@
 version: '2'
 services:
     wordpress:
-        image: dsifford/wordpress 
+        image: dsifford/wordpress
         links:
             - db
         ports:
@@ -13,6 +13,7 @@ services:
         environment:
             DB_NAME: wordpress
             DB_PASS: root # must match below
+            PLUGINS: academic-bloggers-toolkit,co-authors-plus
     db: # Must be named 'db'
         image: mysql:5.7
         ports:
