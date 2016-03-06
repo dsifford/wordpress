@@ -9,19 +9,24 @@ if [ ! -f /.mysql_db_created ]; then
     if [[ ! $(wp core is-installed --allow-root) ]]; then
         wp core install --allow-root \
             --url=localhost:8080 \
-            --title=$DB_NAME \
+            --title="$DB_NAME" \
             --admin_user=root \
-            --admin_password=$DB_PASS \
-            --admin_email=admin@${DB_NAME}.com \
+            --admin_password="$DB_PASS" \
+            --admin_email=admin@"${DB_NAME}".com \
             --skip-email
     fi
 fi
 
-[ $PLUGINS ] && \
+[ "$PLUGINS" ] && \
     while IFS=',' read -ra plugin; do
         for i in "${plugin[@]}"; do
-            echo Installing plugin: $i
-            wp plugin install $i --activate --allow-root
+            wp plugin is-installed "$i" --allow-root
+            if [ $? -eq 0 ]; then
+                echo "=> $i is already installed -- SKIPPING..."
+            else
+                echo "=> Installing plugin: $i"
+                wp plugin install "$i" --activate --allow-root
+            fi
         done
     done <<< "$PLUGINS"
 
