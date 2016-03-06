@@ -3,27 +3,36 @@
 [ ! "$DB_NAME" ] && DB_NAME='wordpress'
 [ ! "$DB_PASS" ] && DB_PASS='root'
 
-cp /app/wp-config-sample.php /app/wp-config.php
-curl https://api.wordpress.org/secret-key/1.1/salt/ -o /usr/local/src/wp.keys
-sed -i "s/database_name_here/$DB_NAME/" /app/wp-config.php
-sed -i "s/username_here/root/" /app/wp-config.php
-sed -i "s/password_here/$DB_PASS/" /app/wp-config.php
-sed -i "s/'localhost'/\"db:3306\"/" /app/wp-config.php
-sed -i '/#@-/r /usr/local/src/wp.keys' /app/wp-config.php
-sed -i "/#@+/,/#@-/d" /app/wp-config.php
+printf "=> Creating wp-config.php... "
+/usr/local/bin/wp core config \
+    --dbname="$DB_NAME" \
+    --dbuser=root \
+    --dbpass="$DB_PASS" \
+    --dbhost=db:3306 \
+    --allow-root
+
+i=0
+while [ ! -f /app/wp-config.php ]; do
+    [ $i -eq 15 ] && break
+    sleep 1
+    ((i++))
+done
+[ $i -lt 15 ] && printf "Done!\n" || printf "Failed.\n"
 
 # .htaccess
+printf "=> Creating .htaccess file... "
 cat > /app/.htaccess <<EOF
 # BEGIN WordPress
 <IfModule mod_rewrite.c>
-RewriteEngine On
-RewriteBase /
-RewriteRule ^index\.php$ - [L]
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /index.php [L]
+    RewriteEngine On
+    RewriteBase /
+    RewriteRule ^index\.php$ - [L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.php [L]
 </IfModule>
 # END WordPress
 EOF
+printf "Done!\n"
 
-echo "Wordpress setup!"
+printf "=> Wordpress setup complete!\n"

@@ -17,7 +17,9 @@ RUN curl \
         -o /run.sh https://raw.githubusercontent.com/dsifford/wordpress/master/scripts/run.sh \
     && chmod +x /usr/local/bin/wp init-wp init-db /run.sh \
     && wp core download --allow-root \
-    && chown -R www-data:www-data /app /var/www/html
+    && chown -R www-data:www-data /app /var/www/html \
+    && sed -i "s/AllowOverride None/AllowOverride All/g" /etc/apache2/apache2.conf \
+    && a2enmod rewrite
 
 # Run the server
 EXPOSE 80 443
