@@ -7,7 +7,6 @@ printf "=> Waiting for MySQL to initialize... "
 while ! mysqladmin ping --host=db --password=$DB_PASS --silent; do
     sleep 1
 done
-printf "Done!\n"
 
 printf "=> Generating wp.config.php file... "
 /usr/local/bin/wp core config \
