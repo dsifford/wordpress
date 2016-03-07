@@ -25,7 +25,7 @@ fi
                 echo "=> $i is already installed -- SKIPPING..."
             else
                 echo "=> Installing plugin: $i"
-                wp plugin install "$i" --activate --allow-root
+                wp plugin install "$i" --allow-root
             fi
         done
     done <<< "$PLUGINS"

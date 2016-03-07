@@ -1,5 +1,5 @@
 ### dsifford/wordpress
-> A disposable Docker WordPress environment that just works.
+> A disposable Docker WordPress environment that just works, inspired by [visiblevc/wordpress-starter](https://github.com/visiblevc/wordpress-starter).
 
 ### Requirements
 This Dockerfile must be ran in conjunction with a MySQL container, preferably using Docker Compose.
