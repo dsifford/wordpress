@@ -3,24 +3,22 @@
 [ ! "$DB_NAME" ] && DB_NAME='wordpress'
 [ ! "$DB_PASS" ] && DB_PASS='root'
 
-printf "=> Creating wp-config.php... "
+printf "=> Waiting for MySQL to initialize... "
+while ! mysqladmin ping --host=db --password=$DB_PASS --silent; do
+    sleep 1
+done
+printf "Done!\n"
+
+printf "=> Generating wp.config.php file... "
 /usr/local/bin/wp core config \
     --dbname="$DB_NAME" \
     --dbuser=root \
     --dbpass="$DB_PASS" \
-    --dbhost=db:3306 \
+    --dbhost='db:3306' \
     --allow-root
 
-i=0
-while [ ! -f /app/wp-config.php ]; do
-    [ $i -eq 15 ] && break
-    sleep 1
-    ((i++))
-done
-[ $i -lt 15 ] && printf "Done!\n" || printf "Failed.\n"
-
 # .htaccess
-printf "=> Creating .htaccess file... "
+printf "=> Generating .htaccess file... "
 cat > /app/.htaccess <<EOF
 # BEGIN WordPress
 <IfModule mod_rewrite.c>
