@@ -5,53 +5,54 @@ printf  "
 =====================================
   Database Host Address:  db
   Database Port Number:   3306
-  Database Name:          $DB_NAME
+  Database Name:          %s
   Database Username:      root
 =====================================
-"
+" "$DB_NAME"
 
+printf "=> Establishing database connection... "
 for i in {1..10}; do
-    printf "=> Establishing database connection (attempt $i/10)..."
     DB_CONNECTABLE=$(mysql --user=root --password="$DB_PASS" --host=db --port=3306 -e 'status' >/dev/null 2>&1; echo "$?")
     if [[ DB_CONNECTABLE -eq 0 ]]; then
-        printf "\n=> Database Connection Established!"
+        printf "Connection Established!\n"
         break
     fi
     sleep 5
-    printf "Failed."
+    printf "Connection Failed.\n"
 done
 
 if [[ $DB_CONNECTABLE -eq 0 ]]; then
     DB_EXISTS=$(mysql --user=root --password="$DB_PASS" --host=db --port=3306 -e "SHOW DATABASES LIKE '$DB_NAME';" 2>&1 |grep "$DB_NAME" > /dev/null ; echo "$?")
 
     if [[ DB_EXISTS -eq 1 ]]; then
-        printf "=> Creating database $DB_NAME\n"
+        printf "=> Creating database %s\n" "$DB_NAME"
         RET=$(mysql --user=root --password="$DB_PASS" --host=db --port=3306 -e "CREATE DATABASE $DB_NAME")
         if [[ RET -ne 0 ]]; then
-            printf "Cannot create database for wordpress\n"
+            printf "=> ERROR: Cannot create database for wordpress\n"
             exit RET
         fi
     else
-        printf "=> Skipped creation of database $DB_NAME – database already exists.\n"
+        printf "=> Database %s Exists. Skipping Database Creation...\n" "$DB_NAME"
     fi
 
     if [ $(mysql -N -s --user=root --password="$DB_PASS" --host=db --port=3306 -e \
         "select count(*) from information_schema.tables where \
             table_schema='$DB_NAME' and table_name='wp_posts';") -eq 0 ]; then
-        if [ -f /data/database.sql ]; then
-            printf "=> Loading initial database data to $DB_NAME\n"
-            RET=$(mysql --user=root --password="$DB_PASS" --host=db --port=3306 "$DB_NAME" < /data/database.sql)
+        if [ "$(stat -t /data/*.sql >/dev/null 2>&1 && echo $?)" ]; then
+            DATA_PATH=$(find /data/*.sql | head -n 1)
+            printf "=> Loading data backup from %s into database \"%s\"... " "$DATA_PATH, $DB_NAME"
+            RET=$(mysql --user=root --password="$DB_PASS" --host=db --port=3306 "$DB_NAME" < "$DATA_PATH")
             if [[ RET -ne 0 ]]; then
-                printf "Cannot load initial database data for wordpress\n"
+                printf "Failed.\n"
                 exit RET
             fi
+            printf "Success!\n"
         fi
     fi
 else
-    printf "Cannot connect to Mysql\n"
     exit "$DB_CONNECTABLE"
 fi
 
-printf "=> Database Initialization Completed!"
+printf "=> Database Initialization Completed!\n"
 
 touch /.mysql_db_created
