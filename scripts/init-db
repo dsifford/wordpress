@@ -1,5 +1,9 @@
 #!/bin/bash
 
+[ "$DB_NAME" ] || DB_NAME='wordpress'
+[ "$DB_PASS" ] || DB_PASS='root'
+[ "$SEARCH_REPLACE" ] || SEARCH_REPLACE=false
+
 printf  "
 => Initializing Database...
 =====================================
@@ -47,6 +51,18 @@ if [[ $DB_CONNECTABLE -eq 0 ]]; then
                 exit RET
             fi
             printf "Success!\n"
+
+            # Apply URL rewrites if SEARCH_REPLACE is set
+            if [ "$SEARCH_REPLACE" != false ]; then
+
+                printf "=> Replacing URLs... "
+                BEFORE_URL=$(echo "$SEARCH_REPLACE" | cut -d ',' -f 1)
+                AFTER_URL=$(echo "$SEARCH_REPLACE" | cut -d ',' -f 2)
+                wp search-replace  "$BEFORE_URL" "$AFTER_URL" --skip-columns=guid --allow-root
+                printf "Done!\n"
+
+            fi
+
         fi
     fi
 
