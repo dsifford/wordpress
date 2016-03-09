@@ -3,13 +3,8 @@
 [ "$DB_NAME" ] || DB_NAME='wordpress'
 [ "$DB_PASS" ] || DB_PASS='root'
 
-printf "=> Waiting for MySQL to initialize... "
-while ! mysqladmin ping --host=db --password=$DB_PASS --silent; do
-    sleep 1
-done
-
 printf "=> Generating wp.config.php file... "
-/usr/local/bin/wp core config \
+wp core config \
     --dbname="$DB_NAME" \
     --dbuser=root \
     --dbpass="$DB_PASS" \
@@ -32,4 +27,4 @@ cat > /app/.htaccess <<EOF
 EOF
 printf "Done!\n"
 
-printf "=> Wordpress setup complete!\n"
+printf "=> WordPress configuration completed successfully!\n"
