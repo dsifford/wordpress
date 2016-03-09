@@ -13,7 +13,9 @@ This Dockerfile must be ran in conjunction with a MySQL container, preferably us
 - `DB_PASS` (required): Must match `MYSQL_ROOT_PASSWORD`
 - `DB_NAME` (optional): Defaults to 'wordpress'
 - `PLUGINS` (optional): Comma-separated list of plugins that you depend on.
-- `SEARCH_REPLACE` (optional): Comma-separated string in the form of `current-url`,`replacement-url`. When defined, `current-url` will be replaced with `replacement-url` on build (useful for development environments utilizing a database copied from a live site).
+- `SEARCH_REPLACE` (optional): Comma-separated string in the form of `current-url`,`replacement-url`.
+    - When defined, `current-url` will be replaced with `replacement-url` on build (useful for development environments utilizing a database copied from a live site).
+    - **IMPORTANT NOTE:** If you are running Docker on Mac or PC (using Docker Machine), your replacement url MUST be the output of the following command: `echo $(docker-machine ip <your-machine-name>):8080`
 
 ##### MySQL Container
 - `MYSQL_ROOT_PASSWORD` (required): Must match `DB_PASS`
@@ -37,6 +39,7 @@ services:
             DB_NAME: wordpress
             DB_PASS: root # must match below
             PLUGINS: academic-bloggers-toolkit,co-authors-plus
+            SEARCH_REPLACE: yoursite.com,localhost:8080
     db: # Must be named 'db'
         image: mysql:5.7
         ports:

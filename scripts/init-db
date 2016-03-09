@@ -5,7 +5,7 @@
 [ "$SEARCH_REPLACE" ] || SEARCH_REPLACE=false
 
 printf  "
-=> Initializing Database...
+=> Initializing database...
 =====================================
   Database Host Address:  db
   Database Port Number:   3306
@@ -14,70 +14,45 @@ printf  "
 =====================================
 " "$DB_NAME"
 
-printf "=> Establishing database connection... "
-for i in {1..10}; do
-    DB_CONNECTABLE=$(mysql --user=root --password="$DB_PASS" --host=db --port=3306 -e 'status' >/dev/null 2>&1; echo "$?")
-    if [[ DB_CONNECTABLE -eq 0 ]]; then
-        printf "Connection Established!\n"
-        break
+printf "=> Creating database '%s'... " "$DB_NAME"
+wp db create --allow-root
+
+# If an SQL file exists in /data => load it
+if [ "$(stat -t /data/*.sql >/dev/null 2>&1 && echo $?)" ]; then
+
+    DATA_PATH=$(find /data/*.sql | head -n 1)
+    printf "=> Loading data backup from %s... " "$DATA_PATH"
+    wp db import "$DATA_PATH" --allow-root
+
+    # If SEARCH_REPLACE is set => Replace URLs
+    if [ "$SEARCH_REPLACE" != false ]; then
+
+        printf "=> Replacing URLs... \n"
+        BEFORE_URL=$(echo "$SEARCH_REPLACE" | cut -d ',' -f 1)
+        AFTER_URL=$(echo "$SEARCH_REPLACE" | cut -d ',' -f 2)
+        wp search-replace  "$BEFORE_URL" "$AFTER_URL" --skip-columns=guid --allow-root
+
     fi
-    sleep 5
-    printf "Connection Failed.\n"
-done
-
-if [[ $DB_CONNECTABLE -eq 0 ]]; then
-    DB_EXISTS=$(mysql --user=root --password="$DB_PASS" --host=db --port=3306 -e "SHOW DATABASES LIKE '$DB_NAME';" 2>&1 |grep "$DB_NAME" > /dev/null ; echo "$?")
-
-    if [[ DB_EXISTS -eq 1 ]]; then
-        printf "=> Creating database %s\n" "$DB_NAME"
-        RET=$(mysql --user=root --password="$DB_PASS" --host=db --port=3306 -e "CREATE DATABASE $DB_NAME")
-        if [[ RET -ne 0 ]]; then
-            printf "=> ERROR: Cannot create database for wordpress\n"
-            exit RET
-        fi
-    else
-        printf "=> Database %s Exists. Skipping Database Creation...\n" "$DB_NAME"
-    fi
-
-    if [ $(mysql -N -s --user=root --password="$DB_PASS" --host=db --port=3306 -e \
-        "select count(*) from information_schema.tables where \
-            table_schema='$DB_NAME' and table_name='wp_posts';") -eq 0 ]; then
-        if [ "$(stat -t /data/*.sql >/dev/null 2>&1 && echo $?)" ]; then
-            DATA_PATH=$(find /data/*.sql | head -n 1)
-            printf "=> Loading data backup from %s into database \"%s\"... " "$DATA_PATH, $DB_NAME"
-            RET=$(mysql --user=root --password="$DB_PASS" --host=db --port=3306 "$DB_NAME" < "$DATA_PATH")
-            if [[ RET -ne 0 ]]; then
-                printf "Failed.\n"
-                exit RET
-            fi
-            printf "Success!\n"
-
-            # Apply URL rewrites if SEARCH_REPLACE is set
-            if [ "$SEARCH_REPLACE" != false ]; then
-
-                printf "=> Replacing URLs... "
-                BEFORE_URL=$(echo "$SEARCH_REPLACE" | cut -d ',' -f 1)
-                AFTER_URL=$(echo "$SEARCH_REPLACE" | cut -d ',' -f 2)
-                wp search-replace  "$BEFORE_URL" "$AFTER_URL" --skip-columns=guid --allow-root
-                printf "Done!\n"
-
-            fi
-
-        fi
-    fi
-
-    printf "=> Applying appropriate filesystem permissions... "
-    groupadd docker && usermod -aG docker www-data
-    find /app -type d -exec chmod 755 {} \;
-    find /app -type f -exec chmod 644 {} \;
-    chmod -R 775 /app/wp-content/uploads \
-        && chown -R :docker /app/wp-content/uploads
-    printf "Done!\n"
 
 else
-    exit "$DB_CONNECTABLE"
+    printf "%s\n" \
+        "=> No database backup found. Initializing new database..." " " \
+        "      DEFAULT DATABASE CREDENTIALS" \
+        "=========================================" \
+        " Site URL:       $([ "$AFTER_URL" ] && echo "$AFTER_URL" || echo localhost:8080)" \
+        " Site Title:     $DB_NAME" \
+        " Admin Username: root" \
+        " Admin Password: $DB_PASS" \
+        " Admin Email:    admin@${DB_NAME}.com" \
+        "=========================================" " "
+
+    wp core install --allow-root \
+        --url=localhost:8080 \
+        --title="$DB_NAME" \
+        --admin_user=root \
+        --admin_password="$DB_PASS" \
+        --admin_email=admin@"${DB_NAME}".com \
+        --skip-email
 fi
 
-printf "=> Database Initialization Completed!\n"
-
-touch /.mysql_db_created
+printf "=> Database initialization completed sucessfully!\n\n"
