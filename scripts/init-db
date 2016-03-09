@@ -39,7 +39,7 @@ else
         "=> No database backup found. Initializing new database..." " " \
         "      DEFAULT DATABASE CREDENTIALS" \
         "=========================================" \
-        " Site URL:       localhost:8080 " \
+        " Site URL:       $([ "$AFTER_URL" ] && echo "$AFTER_URL" || echo localhost:8080)" \
         " Site Title:     $DB_NAME" \
         " Admin Username: root" \
         " Admin Password: $DB_PASS" \
