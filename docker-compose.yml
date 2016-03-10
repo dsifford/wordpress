@@ -14,7 +14,7 @@ services:
             DB_NAME: wordpress
             DB_PASS: root # must match below
             PLUGINS: academic-bloggers-toolkit,co-authors-plus
-            SEARCH_REPLACE: www.yoursite.com,localhost:8080
+            SEARCH_REPLACE: http://www.yoursite.com,http://localhost:8080
     db: # Must be named 'db'
         image: mysql:5.7
         ports:
