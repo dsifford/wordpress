@@ -12,10 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 RUN curl \
         -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
-        -o init-wp https://raw.githubusercontent.com/dsifford/wordpress/master/scripts/init-wp \
-        -o init-db https://raw.githubusercontent.com/dsifford/wordpress/master/scripts/init-db \
-        -o /run.sh https://raw.githubusercontent.com/dsifford/wordpress/master/scripts/run.sh \
-    && chmod +x /usr/local/bin/wp init-wp init-db /run.sh \
+        -o /run.sh https://raw.githubusercontent.com/dsifford/wordpress/master/run.sh \
+    && chmod +x /usr/local/bin/wp /run.sh \
     && wp core download --allow-root \
     && chown -R www-data:www-data /app /var/www/html \
     && sed -i "s/AllowOverride None/AllowOverride All/g" /etc/apache2/apache2.conf \
