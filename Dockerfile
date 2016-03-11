@@ -1,9 +1,9 @@
 FROM tutum/apache-php
 MAINTAINER Derek P Sifford <dereksifford@gmail.com>
-ENV DEBIAN_FRONTEND noninteractive
 
 # Install mysql-client
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update \
+    && DEBIAN_FRONTENT=noninteractive apt-get install -y --no-install-recommends \
         mysql-client \
         unzip \
     && rm -rf /var/lib/apt/lists/*
