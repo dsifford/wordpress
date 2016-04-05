@@ -1,0 +1,20 @@
+{
+  "name": "dsifford/wordpress",
+  "version": "1.0.0",
+  "description": "> A disposable Docker WordPress environment that just works, inspired by [visiblevc/wordpress-starter](https://github.com/visiblevc/wordpress-starter).",
+  "main": "index.js",
+  "scripts": {
+    "wp": "wpcmd() { docker exec $(docker ps -lq) /bin/bash -c \"sudo -u www-data wp $(echo $@)\"; };wpcmd "
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dsifford/wordpress.git"
+  },
+  "keywords": [],
+  "author": "Derek P Sifford",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dsifford/wordpress/issues"
+  },
+  "homepage": "https://github.com/dsifford/wordpress#readme"
+}
