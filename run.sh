@@ -1,5 +1,5 @@
 #!/bin/bash
-
+export TERM=xterm
 [ "$DB_NAME" ]  || DB_NAME='wordpress'
 [ "$DB_PASS" ]  || DB_PASS='root'
 [ "$THEMES" ]   || THEMES='twentysixteen'
@@ -124,10 +124,13 @@ if [ ! -f /app/.htaccess ]; then
   # Set WordPress Environment Variables
   # -----------------------------------
   if [ "$WP_ENV" ]; then
+    printf "=> Setting WordPress environment variables... "
+    echo -e "\n" >> '/app/.htaccess'
     for kv_pair in "${WP_ENV[@]}"; do
         IFS='=' read -ra env <<< "$kv_pair"
-        echo "SetEnv ${env[0]} ${env[1]}" >> '/app/.htaccess';
+        echo "SetEnv ${env[0]} ${env[1]}" >> '/app/.htaccess'
     done
+    printf "Done!\n"
   fi
 
 else
