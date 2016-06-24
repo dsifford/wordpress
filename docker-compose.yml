@@ -18,6 +18,9 @@ services:
               co-authors-plus
             SEARCH_REPLACE: yoursite.com,localhost:8080
             WP_DEBUG: 'true'
+            WP_ENV: >-
+                KEY_ONE='value one',
+                KEY_TWO=value_two
     db: # Must be named 'db'
         image: mysql:5.7
         ports:

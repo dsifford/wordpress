@@ -120,6 +120,16 @@ if [ ! -f /app/.htaccess ]; then
   sudo -u www-data wp rewrite flush --hard >/dev/null 2>&1 || \
     ERROR $LINENO "Could not generate .htaccess file"
   printf "Done!\n"
+
+  # Set WordPress Environment Variables
+  # -----------------------------------
+  if [ "$WP_ENV" ]; then
+    for kv_pair in "${WP_ENV[@]}"; do
+        IFS='=' read -ra env <<< "$kv_pair"
+        echo "SetEnv ${env[0]} ${env[1]}" >> '/app/.htaccess';
+    done
+  fi
+
 else
   printf "=> .htaccess exists. SKIPPING...\n"
 fi
@@ -171,7 +181,7 @@ if [ -d /app/wp-content/plugins/akismet ]; then
   while IFS=',' read -ra theme; do
     for i in "${!theme[@]}"; do
       REMOVE_LIST=( "${REMOVE_LIST[@]/${theme[$i]}}" )
-      THEME_LIST+="${theme[$i]}"
+      THEME_LIST+=("${theme[$i]}")
     done
     sudo -u www-data wp theme delete "${REMOVE_LIST[@]}"
   done <<< $THEMES
