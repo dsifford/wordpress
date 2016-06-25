@@ -1,5 +1,5 @@
 #!/bin/bash
-export TERM=xterm
+
 [ "$DB_NAME" ]  || DB_NAME='wordpress'
 [ "$DB_PASS" ]  || DB_PASS='root'
 [ "$THEMES" ]   || THEMES='twentysixteen'
@@ -157,12 +157,16 @@ if [ "$PLUGINS" ]; then
   while IFS=',' read -ra plugin; do
     for i in "${!plugin[@]}"; do
       plugin_name=$(echo "${plugin[$i]}" | xargs)
-      sudo -u www-data wp plugin is-installed "${plugin_name}"
+      sudo -u www-data wp plugin is-installed "$plugin_name"
       if [ $? -eq 0 ]; then
-        printf "=> ($((i+1))/${#plugin[@]}) Plugin '%s' found. SKIPPING...\n" "${plugin_name}"
+        printf "=> ($((i+1))/${#plugin[@]}) Plugin '%s' found. SKIPPING...\n" "$plugin_name"
       else
-        printf "=> ($((i+1))/${#plugin[@]}) Plugin '%s' not found. Installing...\n" "${plugin_name}"
-        sudo -u www-data wp plugin install "${plugin_name}"
+        printf "=> ($((i+1))/${#plugin[@]}) Plugin '%s' not found. Installing...\n" "$plugin_name"
+        sudo -u www-data wp plugin install "$plugin_name"
+        if [ $plugin_name == 'rest-api' ]; then
+          echo "=> Plugin 'rest-api' found. Installing 'wp-rest-cli' WP-CLI package..."
+          sudo -u www-data wp package install danielbachhuber/wp-rest-cli
+        fi
       fi
     done
   done <<< "$PLUGINS"

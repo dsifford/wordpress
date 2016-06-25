@@ -15,7 +15,8 @@ services:
             DB_PASS: root # must match below
             PLUGINS: >-
               academic-bloggers-toolkit,
-              co-authors-plus
+              co-authors-plus,
+              rest-api
             SEARCH_REPLACE: yoursite.com,localhost:8080
             WP_DEBUG: 'true'
             WP_ENV: >-
