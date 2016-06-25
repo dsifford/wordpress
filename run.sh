@@ -164,8 +164,8 @@ if [ "$PLUGINS" ]; then
         printf "=> ($((i+1))/${#plugin[@]}) Plugin '%s' not found. Installing...\n" "$plugin_name"
         sudo -u www-data wp plugin install "$plugin_name"
         if [ $plugin_name == 'rest-api' ]; then
-          echo "=> Plugin 'rest-api' found. Installing 'wp-rest-cli' WP-CLI package..."
-          sudo -u www-data wp package install danielbachhuber/wp-rest-cli
+          printf "=> Plugin 'rest-api' found. Installing 'wp-rest-cli' WP-CLI package... "
+          wp package install danielbachhuber/wp-rest-cli --allow-root && printf "Done!\n"
         fi
       fi
     done
