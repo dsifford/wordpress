@@ -38,6 +38,7 @@ RUN mkdir -p \
         -o /etc/nginx/conf.d/wordpress.conf https://raw.githubusercontent.com/dsifford/wordpress/nginx/config/wordpress.conf \
         -o /etc/nginx/nginx.conf https://raw.githubusercontent.com/dsifford/wordpress/nginx/config/nginx.conf \
         -o /run.sh https://raw.githubusercontent.com/dsifford/wordpress/nginx/run.sh \
+    && rm -f /etc/nginx/conf.d/default.conf \
     && chmod +x /usr/local/bin/wp /run.sh \
     && sed -i "s/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/g" /etc/php5/fpm/php.ini \
     && ln -s /usr/share/nginx/wordpress/ /app \
@@ -48,5 +49,5 @@ RUN mkdir -p \
 
 
 WORKDIR /app
-EXPOSE 80 443
+EXPOSE 80 443 9000
 CMD ["/run.sh"]

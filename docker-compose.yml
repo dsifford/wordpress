@@ -25,7 +25,7 @@ services:
                 KEY_ONE='value one',
                 KEY_TWO=value_two
     db: # Must be named 'db'
-        image: mariadb:10 
+        image: mariadb:10
         ports:
             - 3306:3306
         volumes_from:
