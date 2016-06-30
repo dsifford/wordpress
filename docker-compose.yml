@@ -1,7 +1,7 @@
 version: '2'
 services:
     wordpress:
-        image: dsifford/wordpress
+        image: .
         links:
             - db
         ports:
@@ -25,7 +25,7 @@ services:
                 KEY_ONE='value one',
                 KEY_TWO=value_two
     db: # Must be named 'db'
-        image: mysql:5.7
+        image: mariadb:10 
         ports:
             - 3306:3306
         volumes_from:
