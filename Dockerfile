@@ -41,6 +41,7 @@ RUN mkdir -p \
     && rm -f /etc/nginx/conf.d/default.conf \
     && chmod +x /usr/local/bin/wp /run.sh \
     && sed -i "s/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/g" /etc/php5/fpm/php.ini \
+    && sed -i "s!listen = /var/run/php5-fpm.sock!listen = unix:/tmp/php-cgi.socket!g" /etc/php5/fpm/pool.d/www.conf \
     && ln -s /usr/share/nginx/wordpress/ /app \
     && chown -R www-data:www-data /usr/share/nginx/ \
     && wp cli update --nightly --yes --allow-root \
