@@ -208,4 +208,4 @@ printf "\t%s\n" \
 
 # Restart NGINX
 # ------------
-exec service nginx restart
+exec nginx -g daemon off
