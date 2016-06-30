@@ -45,7 +45,7 @@ RUN mkdir -p \
     && wp cli update --nightly --yes --allow-root \
     && /usr/sbin/php5enmod mcrypt \
     && service php5-fpm restart \
-    && service nginx start
+    && nginx -g daemon off 
 
 
 WORKDIR /app

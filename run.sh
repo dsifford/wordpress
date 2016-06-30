@@ -48,7 +48,6 @@ EOF
 # ------------------
 if [ ! -f /app/wp-settings.php ]; then
   printf "=> Downloading wordpress... "
-  chown -R www-data:www-data /app /var/www/html
   sudo -u www-data wp core download >/dev/null 2>&1 || \
     ERROR $LINENO "Failed to download wordpress"
   printf "Done!\n"
@@ -208,4 +207,4 @@ printf "\t%s\n" \
 
 # Restart NGINX
 # ------------
-exec nginx -g daemon off
+exec nginx
