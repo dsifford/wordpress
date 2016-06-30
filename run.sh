@@ -207,4 +207,4 @@ printf "\t%s\n" \
 
 # Restart NGINX
 # ------------
-exec nginx
+nginx

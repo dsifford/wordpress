@@ -44,8 +44,7 @@ RUN mkdir -p \
     && chown -R www-data:www-data /usr/share/nginx/ \
     && wp cli update --nightly --yes --allow-root \
     && /usr/sbin/php5enmod mcrypt \
-    && service php5-fpm restart \
-    && nginx -g daemon off 
+    && service php5-fpm restart
 
 
 WORKDIR /app
