@@ -27,11 +27,9 @@ RUN apt-get update \
         vim \
     && rm -rf /var/lib/apt/lists/*
 
-mkdir -p var/www/{22222/{cert,htdocs/{db/adminer,fpm/status,php}},wordpress/{conf,htdocs,logs}}
+
 # Adminer, WP-CLI, and config files
-RUN mkdir -p \
-        /usr/share/nginx/adminer \
-        /usr/share/nginx/wordpress \
+RUN mkdir -p var/www/{22222/{cert,htdocs/{db/adminer,fpm/status,php}},wordpress/{conf,htdocs,logs}}
     && curl \
         -o /var/www/22222/htdocs/db/adminer/index.php http://www.adminer.org/latest.php \
         -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
