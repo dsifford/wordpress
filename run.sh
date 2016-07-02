@@ -137,20 +137,17 @@ initialize() {
 
   h2 "Configuring WordPress..."
   h3 "Generating wp-config.php..."
-  WP core config || \
-    ERROR $LINENO "Could not generate wp-config.php file"
+  WP core config || ERROR $LINENO "Could not generate wp-config.php file"
 
   h3 "Setting up database"
-  WP db create >/dev/null 2>&1 || \
-    ERROR $LINENO "Database creation failed"
+  WP db create >/dev/null 2>&1 || ERROR $LINENO "Database creation failed"
 
   # If an SQL file exists in /data => load it
   if [ "$(stat -t /data/*.sql >/dev/null 2>&1 && echo $?)" ]; then
     data_path=$(find /data/*.sql | head -n 1)
     h3 "Loading data backup from $data_path..."
     h3 "Importing data backup..."
-    WP db import "$data_path" >/dev/null 2>&1 || \
-      ERROR $LINENO "Could not import database"
+    WP db import "$data_path" >/dev/null 2>&1 || ERROR $LINENO "Could not import database"
 
     # If SEARCH_REPLACE is set => Replace URLs
     if [[ "$SEARCH_REPLACE" ]]; then
@@ -162,8 +159,7 @@ initialize() {
     fi
   else
     h3 "No database backup found. Initializing new database..."
-    WP core install >/dev/null 2>&1 || \
-      ERROR $LINENO "WordPress Install Failed"
+    WP core install >/dev/null 2>&1 || ERROR $LINENO "WordPress Install Failed"
   fi
 
   h2 "Initial setup complete!"

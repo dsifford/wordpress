@@ -8,6 +8,7 @@ RUN apt-get update \
         curl \
         build-essential \
         git \
+        mariadb-client \
         python3-setuptools \
         python3-dev \
         python3-apt \
