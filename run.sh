@@ -1,210 +1,262 @@
 #!/bin/bash
 
-[ "$DB_NAME" ]  || DB_NAME='wordpress'
-[ "$DB_PASS" ]  || DB_PASS='root'
-[ "$THEMES" ]   || THEMES='twentysixteen'
-[ "$WP_DEBUG" ] || WP_DEBUG='false'
-[ "$WP_DEBUG_LOG" ] || WP_DEBUG_LOG='false'
-[ "$WP_DEBUG_DISPLAY" ] || WP_DEBUG_DISPLAY='true'
-[ "$ADMIN_EMAIL" ] || ADMIN_EMAIL="admin@${DB_NAME}.com"
-[ "$SEARCH_REPLACE" ] && \
-  BEFORE_URL=$(echo "$SEARCH_REPLACE" | cut -d ',' -f 1) && \
-  AFTER_URL=$(echo "$SEARCH_REPLACE" | cut -d ',' -f 2) || \
-  SEARCH_REPLACE=false
+###
+# GLOBALS
+##
+PHP_VERSION=5.6
 
-ERROR () {
-  echo -e "\n=> $(tput -T xterm setaf 1)$(tput -T xterm bold)ERROR$(tput -T xterm sgr 0) (Line $1): $2.";
-  exit 1;
-}
+###
+# ENVIRONMENT VARIABLES
+##
 
-# Configure wp-cli
-# ----------------
-cat > /app/wp-cli.yml <<EOF
+# Required
+[[ ! "$DB_PASS" ]] && ERROR $LINENO "Environment variable 'DB_PASS' must be set"
+
+# Optional, with defaults
+DB_NAME=${DB_NAME:-wordpress}
+ADMIN_EMAIL=${ADMIN_EMAIL:-"admin@$DB_NAME.com"}
+LOCALHOST=${LOCALHOST:-false}
+SITE_NAME=${SITE_NAME:-wordpress}
+THEMES=${THEMES:-twentysixteen}
+WP_DEBUG_DISPLAY=${WP_DEBUG_DISPLAY:-true}
+WP_DEBUG_LOG=${WP_DEBUG_LOG:-false}
+WP_DEBUG=${WP_DEBUG:-false}
+
+# Optional, no defaults
+[[ "$SEARCH_REPLACE" ]] && \
+  BEFORE_URL=${SEARCH_REPLACE%%,*} &&
+  AFTER_URL=${SEARCH_REPLACE##*,}
+
+
+###
+# Configurations
+##
+
+wp_cli_config() {
+cat > /wp-cli.yml <<EOF
+path: /var/www/$SITE_NAME/htdocs
 quiet: true
-apache_modules:
-  - mod_rewrite
 
 core config:
   dbuser: root
   dbpass: $DB_PASS
   dbname: $DB_NAME
-  dbhost: db:3306
+  dbhost: db
   extra-php: |
-    define('WP_DEBUG', ${WP_DEBUG,,});
-    define('WP_DEBUG_LOG', ${WP_DEBUG_LOG,,});
-    define('WP_DEBUG_DISPLAY', ${WP_DEBUG_DISPLAY,,});
+    define( 'WP_DEBUG', $WP_DEBUG );
+    define( 'WP_DEBUG_LOG', $WP_DEBUG_LOG );
+    define( 'WP_DEBUG_DISPLAY', $WP_DEBUG_DISPLAY );
 
 core install:
   url: $([ "$AFTER_URL" ] && echo "$AFTER_URL" || echo localhost:8080)
-  title: $DB_NAME
+  title: $SITE_NAME
   admin_user: root
   admin_password: $DB_PASS
   admin_email: $ADMIN_EMAIL
   skip-email: true
 EOF
+}
+
+php_fpm_config() {
+mkdir -p /run/php
+cat > /etc/php/$PHP_VERSION/fpm/php-fpm.conf <<EOF
+[global]
+daemonize = no
+pid = /run/php/php$PHP_VERSION-fpm.pid
+error_log = /var/log/php/$PHP_VERSION/fpm.log
+log_level = notice
+include = /etc/php/$PHP_VERSION/fpm/pool.d/*.conf
+EOF
+}
+
+main() {
+
+  # If no site directory exists, then this must be the initial installation
+  if [ ! -d /var/www/$SITE_NAME ]; then
+    initialize
+  fi
+
+  # Be sure MySQL is ready for connections at this point
+  echo -en "${ORANGE}=> Waiting for MySQL to initialize..."
+  while ! mysqladmin ping --host=db --password=$DB_PASS --silent; do
+    sleep 1
+  done
+  echo -e "Ready!${NC}"
+
+  check_plugins
+
+  # Garbage collect on initial build
+  if [ -d /var/www/$SITE_NAME/htdocs/wp-content/plugins/akismet ]; then
+    remove_garbage
+  fi
+
+  h1 "Setup complete!"
+  h2 "Restarting PHP-FPM"
+  /etc/init.d/php$PHP_VERSION-fpm restart
+  h2 "Starting NGINX in the foreground"
+  exec nginx -g "daemon off;"
+}
 
 
-# Download WordPress
-# ------------------
-if [ ! -f /app/wp-settings.php ]; then
-  printf "=> Downloading wordpress... "
-  sudo -u www-data wp core download >/dev/null 2>&1 || \
-    ERROR $LINENO "Failed to download wordpress"
-  printf "Done!\n"
-fi
+###
+# Separation of concerns
+##
 
+# Installs WordPress for the first time.
+#
+# This function is ran only if a folder named $SITE_NAME
+# doesn't exist within /var/www
+initialize() {
+  local replacements data_path
 
-# Wait for MySQL
-# --------------
-printf "=> Waiting for MySQL to initialize... \n"
-while ! mysqladmin ping --host=db --password=$DB_PASS --silent; do
-  sleep 1
-done
+  h1 "Setting up site. (This can take up to 20 minutes)"
+  dpkg-divert --local --rename --add /sbin/initctl &>/dev/null && ln -sf /bin/true /sbin/initctlq
 
+  h2 "Initializing...."
+  LC_ALL=en_US.UTF-8 ee site create ${SITE_NAME:-wordpress} --wpfc 2>/dev/null
 
-printf "\t%s\n" \
-  "=======================================" \
-  "    Begin WordPress Configuration" \
-  "======================================="
+  h3 "Installing Adminer..."
+  ee stack install --adminer
 
+  h3 "Configuring WP-CLI..."
+  wp_cli_config
 
-# wp-config.php
-# -------------
-printf "=> Generating wp.config.php file... "
-rm -f /app/wp-config.php
-sudo -u www-data wp core config >/dev/null 2>&1 || \
-  ERROR $LINENO "Could not generate wp-config.php file"
-printf "Done!\n"
+  h3 "Updating to WP-CLI nightly..."
+  wp cli update --nightly --yes --allow-root
 
-# Setup database
-# --------------
-printf "=> Create database '%s'... " "$DB_NAME"
-if [ ! "$(wp core is-installed --allow-root >/dev/null 2>&1 && echo $?)" ]; then
-  sudo -u www-data wp db create >/dev/null 2>&1 || \
+  h3 "Configuring PHP-FPM..."
+  php_fpm_config
+
+  if [[ "$LOCALHOST" == 'true' ]]; then
+    h3 "Site running on localhost. Adjusting nginx server name..."
+    sed -i "s/server_name.*;/server_name localhost;/" /etc/nginx/sites-enabled/$SITE_NAME
+  fi
+
+  h3 "Adjusting filesystem permissions..."
+  chown -R www-data:www-data /var/www
+
+  h2 "Configuring WordPress..."
+  h3 "Generating wp-config.php..."
+  WP core config || \
+    ERROR $LINENO "Could not generate wp-config.php file"
+
+  h3 "Setting up database"
+  WP db create >/dev/null 2>&1 || \
     ERROR $LINENO "Database creation failed"
-  printf "Done!\n"
-
 
   # If an SQL file exists in /data => load it
   if [ "$(stat -t /data/*.sql >/dev/null 2>&1 && echo $?)" ]; then
-    DATA_PATH=$(find /data/*.sql | head -n 1)
-    printf "=> Loading data backup from %s... " "$DATA_PATH"
-    sudo -u www-data wp db import "$DATA_PATH" >/dev/null 2>&1 || \
+    data_path=$(find /data/*.sql | head -n 1)
+    h3 "Loading data backup from $data_path..."
+    h3 "Importing data backup..."
+    WP db import "$data_path" >/dev/null 2>&1 || \
       ERROR $LINENO "Could not import database"
-    printf "Done!\n"
 
     # If SEARCH_REPLACE is set => Replace URLs
-    if [ "$SEARCH_REPLACE" != false ]; then
-      printf "=> Replacing URLs... "
-      REPLACEMENTS=$(sudo -u www-data wp search-replace "$BEFORE_URL" "$AFTER_URL" \
+    if [[ "$SEARCH_REPLACE" ]]; then
+      h3 "Replacing URLs in database..."
+      replacements=$(WP search-replace "$BEFORE_URL" "$AFTER_URL" \
         --no-quiet --skip-columns=guid | grep replacement) || \
         ERROR $((LINENO-2)) "Could not execute SEARCH_REPLACE on database"
-      echo -ne "$REPLACEMENTS\n"
+      h3 "$replacements"
     fi
   else
-    printf "=> No database backup found. Initializing new database... "
-    sudo -u www-data wp core install >/dev/null 2>&1 || \
+    h3 "No database backup found. Initializing new database..."
+    WP core install >/dev/null 2>&1 || \
       ERROR $LINENO "WordPress Install Failed"
-    printf "Done!\n"
-  fi
-else
-  printf "Already exists!\n"
-fi
-
-
-# .htaccess
-# ---------
-if [ ! -f /app/.htaccess ]; then
-  printf "=> Generating .htaccess file... "
-  sudo -u www-data wp rewrite flush --hard >/dev/null 2>&1 || \
-    ERROR $LINENO "Could not generate .htaccess file"
-  printf "Done!\n"
-
-  # Set WordPress Environment Variables
-  # -----------------------------------
-  if [ "$WP_ENV" ]; then
-    printf "=> Setting WordPress environment variables... "
-    echo -e "\n" >> '/app/.htaccess'
-    for kv_pair in "${WP_ENV[@]}"; do
-        IFS='=' read -ra env <<< "$kv_pair"
-        echo "SetEnv ${env[0]} ${env[1]}" >> '/app/.htaccess'
-    done
-    printf "Done!\n"
   fi
 
-else
-  printf "=> .htaccess exists. SKIPPING...\n"
-fi
+  h2 "Initial setup complete!"
 
+  h2 "Removing unneeded build dependencies..."
+  yes 'yes' | ee stack remove --mysql
+}
 
-# Filesystem Permissions
-# ----------------------
-printf "=> Adjusting filesystem permissions... "
-groupadd -f docker && usermod -aG docker www-data
-find /app -type d -exec chmod 755 {} \;
-find /app -type f -exec chmod 644 {} \;
-mkdir -p /app/wp-content/uploads
-chmod -R 775 /app/wp-content/uploads && \
-  chown -R :docker /app/wp-content/uploads
-printf "Done!\n"
+# Sweeps through the $PLUGINS list to make sure all that required get installed
+# If 'rest-api' plugin is requested, then the wp-rest-cli WP-CLI addon is also installed.
+check_plugins() {
+  if [ ! "$PLUGINS" ]; then
+    h3 "No plugin dependencies listed. SKIPPING..."
+    return
+  fi
 
-
-# Install Plugins
-# ---------------
-if [ "$PLUGINS" ]; then
-  printf "=> Checking plugins...\n"
+  h3 "Checking plugins..."
   while IFS=',' read -ra plugin; do
     for i in "${!plugin[@]}"; do
-      plugin_name=$(echo "${plugin[$i]}" | xargs)
-      sudo -u www-data wp plugin is-installed "$plugin_name"
+      local plugin_name="${plugin[$i]}"
+      WP plugin is-installed "$plugin_name"
       if [ $? -eq 0 ]; then
-        printf "=> ($((i+1))/${#plugin[@]}) Plugin '%s' found. SKIPPING...\n" "$plugin_name"
+        h3 "($((i+1))/${#plugin[@]}) Plugin '$plugin_name' found. SKIPPING..."
       else
-        printf "=> ($((i+1))/${#plugin[@]}) Plugin '%s' not found. Installing...\n" "$plugin_name"
-        sudo -u www-data wp plugin install "$plugin_name"
+        h3 "($((i+1))/${#plugin[@]}) Plugin '$plugin_name' not found. Installing..."
+        WP plugin install "$plugin_name"
         if [ $plugin_name == 'rest-api' ]; then
-          printf "=> Plugin 'rest-api' found. Installing 'wp-rest-cli' WP-CLI package... "
-          wp package install danielbachhuber/wp-rest-cli --allow-root && printf "Done!\n"
+          h3 "Plugin 'rest-api' found. Installing 'wp-rest-cli' WP-CLI package..."
+          wp package install danielbachhuber/wp-rest-cli --allow-root
         fi
       fi
     done
   done <<< "$PLUGINS"
-else
-  printf "=> No plugin dependencies listed. SKIPPING...\n"
-fi
+}
 
+# Removes bundled plugins and themes that aren't needed.
+# Installs themes that ARE needed.
+# note: This function only runs on the initial build (not restarts)
+remove_garbage() {
+  h3 "Removing default plugins..."
+  WP plugin uninstall akismet hello --deactivate
 
-# Operations to perform on first build
-# ------------------------------------
-if [ -d /app/wp-content/plugins/akismet ]; then
-  printf "=> Removing default plugins... "
-  sudo -u www-data wp plugin uninstall akismet hello --deactivate
-  printf "Done!\n"
-
-  printf "=> Removing unneeded themes... "
-  REMOVE_LIST=(twentyfourteen twentyfifteen twentysixteen)
-  THEME_LIST=()
+  h3 "Removing unneeded themes..."
+  local remove_list=(twentyfourteen twentyfifteen twentysixteen)
+  local theme_list=()
   while IFS=',' read -ra theme; do
     for i in "${!theme[@]}"; do
-      REMOVE_LIST=( "${REMOVE_LIST[@]/${theme[$i]}}" )
-      THEME_LIST+=("${theme[$i]}")
+      remove_list=( "${remove_list[@]/${theme[$i]}}" )
+      theme_list+=("${theme[$i]}")
     done
-    sudo -u www-data wp theme delete "${REMOVE_LIST[@]}"
+    WP theme delete "${remove_list[@]}"
   done <<< $THEMES
-  printf "Done!\n"
 
-  printf "=> Installing needed themes... "
-  sudo -u www-data wp theme install "${THEME_LIST[@]}"
-  printf "Done!\n"
-fi
+  h3 "Installing needed themes..."
+  WP theme install "${theme_list[@]}"
+}
 
 
-printf "\t%s\n" \
-  "=======================================" \
-  "   WordPress Configuration Complete!" \
-  "======================================="
+###
+# HELPERS
+##
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+ORANGE='\033[0;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
 
-# Restart NGINX
-# ------------
-nginx
+h1() {
+  local len=$(($(tput cols)-1))
+  local input=$*
+  local size=$((($len - ${#input})/2))
+
+  for ((i = 0; i < $len; i++)); do echo -ne "${GREEN}="; done; echo ""
+  for ((i = 0; i < $size; i++)); do echo -n " "; done; echo -e "${GREEN}$input"
+  for ((i = 0; i < $len; i++)); do echo -ne "${GREEN}="; done; echo -e "${NC}"
+}
+
+h2() {
+  echo -e "${ORANGE}=> $*${NC}"
+}
+
+h3() {
+  echo -e "${CYAN}---> $*${NC}"
+}
+
+ERROR() {
+  echo -e "${RED}=> ERROR (Line $1): $2.${NC}";
+  exit 1;
+}
+
+WP() {
+  sudo -u www-data wp "$@"
+}
+
+main
