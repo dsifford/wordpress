@@ -1,18 +1,19 @@
 version: '2'
 services:
     wordpress:
-        image: .
+        image: dsifford/wordpress:nginx
         links:
             - db
         ports:
+            - 3000:9000
+            - 22222:22222
             - 8080:80
             - 443:443
-        volumes:
-            - ./plugin:/app/wp-content/plugins/myplugin
-            - ./theme:/app/wp-content/themes/mytheme
         environment:
             DB_PASS: root # must match below
             DB_NAME: wordpress
+            SITE_NAME: aliemu.com
+            LOCALHOST: 'true'
             PLUGINS: >-
               academic-bloggers-toolkit,
               co-authors-plus,
@@ -21,9 +22,6 @@ services:
             WP_DEBUG: 'true'
             WP_DEBUG_LOG: 'true'
             WP_DEBUG_DISPLAY: 'false'
-            WP_ENV: >-
-                KEY_ONE='value one',
-                KEY_TWO=value_two
     db: # Must be named 'db'
         image: mariadb:10
         ports:
