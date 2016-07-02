@@ -117,11 +117,13 @@ initialize() {
   factpid=$!
 
   h2 "Initializing...."
-  LC_ALL=en_US.UTF-8 ee site create ${SITE_NAME:-wordpress} --wpfc 2>/dev/null
+  LC_ALL=en_US.UTF-8 ee site create ${SITE_NAME:-wordpress} --wpfc &>/dev/null
 
   # Alright, enough screwing around. Kill the cat facts!
+  h2 "Initialization complete! Hope you enjoyed today's helping of cat facts!"
   kill $factpid
 
+  h2 "Installing and configuring dependencies..."
   h3 "Installing Adminer..."
   ee stack install --adminer
 
