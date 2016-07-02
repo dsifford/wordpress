@@ -72,7 +72,7 @@ EOF
 main() {
 
   # If no site directory exists, then this must be the initial installation
-  if [ ! -d /var/www/$SITE_NAME ]; then
+  if [ ! -d /var/www/$SITE_NAME/htdocs/wp-content/plugins/akismet ]; then
     initialize
   fi
 
@@ -107,13 +107,20 @@ main() {
 # This function is ran only if a folder named $SITE_NAME
 # doesn't exist within /var/www
 initialize() {
-  local replacements data_path
+  local replacements data_path factpid
 
   h1 "Setting up site. (This can take up to 20 minutes)"
   dpkg-divert --local --rename --add /sbin/initctl &>/dev/null && ln -sf /bin/true /sbin/initctlq
 
+  # EasyEngine is painfully slow. To ease the torture, serve up cat facts every minute :)
+  cat_facts&
+  factpid=$!
+
   h2 "Initializing...."
   LC_ALL=en_US.UTF-8 ee site create ${SITE_NAME:-wordpress} --wpfc 2>/dev/null
+
+  # Alright, enough screwing around. Kill the cat facts!
+  kill $factpid
 
   h3 "Installing Adminer..."
   ee stack install --adminer
@@ -215,6 +222,17 @@ remove_garbage() {
 
   h3 "Installing needed themes..."
   WP theme install "${theme_list[@]}"
+}
+
+cat_facts() {
+  local fact
+  h2 "While you wait, enjoy 1 free cat fact per minute."
+  sleep 1
+  while [[ true ]]; do
+    fact=$(curl -s -i -H "Accept: application/json" -H "Content-Type: application/json" -X GET http://catfacts-api.appspot.com/api/facts | grep -Po '(?<="facts": \[")(.+?)"')
+    h3 "${fact::-1}"
+    sleep 60
+  done
 }
 
 

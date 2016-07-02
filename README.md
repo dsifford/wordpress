@@ -13,13 +13,14 @@ This Dockerfile must be ran in conjunction with a MySQL container, preferably us
 - `DB_PASS` (required): Must match `MYSQL_ROOT_PASSWORD`
 - `DB_NAME` (optional): Defaults to 'wordpress'
 - `PLUGINS` (optional): Comma-separated list or yaml array of plugins that you depend on.
+- `SITE_NAME` (optional): The name (and top-level-domain) of your site. Defaults to wordpress.
+- `LOCALHOST` (optional): Boolean - Is this a development site needing to run locally?
 - `SEARCH_REPLACE` (optional): Comma-separated string in the form of `current-url`,`replacement-url`.
     - When defined, `current-url` will be replaced with `replacement-url` on build (useful for development environments utilizing a database copied from a live site).
     - **IMPORTANT NOTE:** If you are running Docker on Mac or PC (using Docker Machine), your replacement url MUST be the output of the following command: `echo $(docker-machine ip <your-machine-name>):8080`
 - `WP_DEBUG` (optional): `boolean` enables `WP_DEBUG`.
 - `WP_DEBUG_LOG` (optional): `boolean` enables `WP_DEBUG_LOG`.
 - `WP_DEBUG_DISPLAY` (optional): `boolean` enables `WP_DEBUG_DISPLAY`.
-- `WP_ENV` (optional): Yaml array of environment variables you'd like set for your WordPress installation (bash format)
 
 ##### MySQL Container
 - `MYSQL_ROOT_PASSWORD` (required): Must match `DB_PASS`
@@ -29,7 +30,7 @@ This Dockerfile must be ran in conjunction with a MySQL container, preferably us
 version: '2'
 services:
   wordpress:
-    image: dsifford/wordpress
+    image: dsifford/wordpress:nginx
     links:
       - db
     ports:
@@ -41,6 +42,8 @@ services:
     environment:
       DB_PASS: root # must match below
       DB_NAME: wordpress
+      SITE_NAME: yoursite.com
+      LOCALHOST: 'true'
       PLUGINS: >-
         academic-bloggers-toolkit,
         co-authors-plus,
@@ -49,11 +52,8 @@ services:
       WP_DEBUG: 'true'
       WP_DEBUG_LOG: 'true'
       WP_DEBUG_DISPLAY: 'false'
-      WP_ENV: >-
-        KEY_ONE='value one',
-        KEY_TWO=value_two
   db: # Must be named 'db'
-    image: mysql:5.7
+    image: mariadb:10
     ports:
       - 3306:3306
     volumes_from:
