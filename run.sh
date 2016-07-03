@@ -77,7 +77,7 @@ main() {
   fi
 
   # Be sure MySQL is ready for connections at this point
-  echo -en "${ORANGE}=> Waiting for MySQL to initialize...."
+  echo -en "${ORANGE}${BOLD}==>${NC}${BOLD} Waiting for MySQL to initialize...."
   while ! mysqladmin ping --host=db --password=$DB_PASS &>/dev/null; do
     sleep 1
   done
@@ -90,9 +90,12 @@ main() {
     wordpress_init
   fi
 
-  h3 "Adjusting filesystem permissions"
-  find /app -type d -exec chmod 755 {} \;
-  find /app -type f -exec chmod 644 {} \;
+  h2 "Adjusting filesystem permissions"
+  h3 "Setting directory permissions to 755"
+  find /var/www/$SITE_NAME -type d -exec chmod 755 {} \; 2>/dev/null
+  STATUS
+  h3 "Setting file permissions to 644"
+  find /var/www/$SITE_NAME -type f -exec chmod 644 {} \; 2>/dev/null
   STATUS
 
   h1 "Setup complete!"
@@ -126,7 +129,8 @@ initialize() {
 
   # Alright, enough screwing around. Kill the cat facts!
   h2 "Initialization complete! That's all for today's helping of cat facts!"
-  kill $factpid &>/dev/null
+  kill $factpid
+  wait $factpid 2>/dev/null
 
   h2 "Installing and configuring dependencies"
   h3 "Installing Adminer"
