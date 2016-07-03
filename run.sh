@@ -90,6 +90,11 @@ main() {
     remove_garbage
   fi
 
+  h3 "Adjusting filesystem permissions"
+  find /app -type d -exec chmod 755 {} \;
+  find /app -type f -exec chmod 644 {} \;
+  STATUS
+
   h1 "Setup complete!"
   h2 "Restarting PHP-FPM"
   /etc/init.d/php$PHP_VERSION-fpm restart &>/dev/null
@@ -146,7 +151,7 @@ initialize() {
     STATUS
   fi
 
-  h3 "Adjusting filesystem permissions"
+  h3 "Adjusting filesystem ownership"
   chown -R www-data:www-data /var/www
   STATUS
 
@@ -246,7 +251,7 @@ cat_facts() {
   sleep 1
   while [[ true ]]; do
     fact=$(curl -s -i -H "Accept: application/json" -H "Content-Type: application/json" -X GET http://catfacts-api.appspot.com/api/facts | grep -Po '(?<="facts": \[")(.+?)"')
-    h4 "${fact::-1}"
+    CF "${fact::-1}"
     sleep 60
   done
 }
@@ -259,6 +264,8 @@ cat_facts() {
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 ORANGE='\033[0;33m'
+PURPLE='\033[0;34m'
+PINK='\033[0;35m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
@@ -267,9 +274,9 @@ h1() {
   local input=$*
   local size=$((($len - ${#input})/2))
 
-  for ((i = 0; i < $len; i++)); do echo -ne "${GREEN}="; done; echo ""
-  for ((i = 0; i < $size; i++)); do echo -n " "; done; echo -e "${GREEN}$input"
-  for ((i = 0; i < $len; i++)); do echo -ne "${GREEN}="; done; echo -e "${NC}"
+  for ((i = 0; i < $len; i++)); do echo -ne "${PURPLE}="; done; echo ""
+  for ((i = 0; i < $size; i++)); do echo -n " "; done; echo -e "${PURPLE}$input"
+  for ((i = 0; i < $len; i++)); do echo -ne "${PURPLE}="; done; echo -e "${NC}"
 }
 
 h2() {
@@ -285,8 +292,8 @@ h3() {
   for ((i = 0; i < $(($width - $msglen)); i++)); do echo -ne "${CYAN}."; done;
 }
 
-h4() {
-  echo -e "${CYAN}---> $*${NC}"
+CF() {
+  echo -e "${PINK}≧◔◡◔≦ $*${NC}"
 }
 
 STATUS() {
