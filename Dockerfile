@@ -23,7 +23,7 @@ RUN apt-get update \
         vim \
     && mv /usr/bin/apt-get /usr/bin/old-apt-get \
     && ln -s /usr/sbin/apt-fast /usr/bin/apt-get \
-    && sed -i "s/_APTMGR=apt-get/_APTMGR=old-apt-get/"
+    && sed -i "s/_APTMGR=apt-get/_APTMGR=old-apt-get/" /etc/apt-fast.conf
 
 RUN git config --global user.name "root" \
     && git config --global user.email root@localhost.com \
