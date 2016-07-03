@@ -193,6 +193,8 @@ initialize() {
 # Sweeps through the $PLUGINS list to make sure all that required get installed
 # If 'rest-api' plugin is requested, then the wp-rest-cli WP-CLI addon is also installed.
 check_plugins() {
+  local plugin_name
+
   if [ ! "$PLUGINS" ]; then
     h2 "No plugin dependencies listed. SKIPPING..."
     return
@@ -201,13 +203,13 @@ check_plugins() {
   h2 "Checking plugins..."
   while IFS=',' read -ra plugin; do
     for i in "${!plugin[@]}"; do
-      local plugin_name="${plugin[$i]}"
+      plugin_name=$(echo "${plugin[$i]}" | xargs)
       WP plugin is-installed "$plugin_name"
       if [ $? -eq 0 ]; then
-        h3 "($((i+1))/${#plugin[@]}) Plugin '$plugin_name' found. SKIPPING"
+        h3 "($((i+1))/${#plugin[@]}) '$plugin_name' found. SKIPPING"
         STATUS SKIP
       else
-        h3 "($((i+1))/${#plugin[@]}) Plugin '$plugin_name' not found. Installing"
+        h3 "($((i+1))/${#plugin[@]}) '$plugin_name' not found. Installing"
         WP plugin install "$plugin_name"
         STATUS
         if [ $plugin_name == 'rest-api' ]; then
