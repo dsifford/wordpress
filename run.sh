@@ -77,7 +77,7 @@ main() {
   fi
 
   # Be sure MySQL is ready for connections at this point
-  echo -en "${ORANGE}=> Waiting for MySQL to initialize..."
+  echo -en "${ORANGE}=> Waiting for MySQL to initialize...."
   while ! mysqladmin ping --host=db --password=$DB_PASS &>/dev/null; do
     sleep 1
   done
@@ -87,7 +87,7 @@ main() {
 
   # Garbage collect on initial build
   if [ -d /var/www/$SITE_NAME/htdocs/wp-content/plugins/akismet ]; then
-    remove_garbage
+    wordpress_init
   fi
 
   h3 "Adjusting filesystem permissions"
@@ -121,14 +121,14 @@ initialize() {
   cat_facts&
   factpid=$!
 
-  h2 "Initializing...."
+  h2 "Initializing"
   LC_ALL=en_US.UTF-8 ee site create ${SITE_NAME:-wordpress} --wpfc &>/dev/null
 
   # Alright, enough screwing around. Kill the cat facts!
   h2 "Initialization complete! That's all for today's helping of cat facts!"
   kill $factpid &>/dev/null
 
-  h2 "Installing and configuring dependencies..."
+  h2 "Installing and configuring dependencies"
   h3 "Installing Adminer"
   ee stack install --adminer &>/dev/null
   STATUS
@@ -155,21 +155,21 @@ initialize() {
   chown -R www-data:www-data /var/www
   STATUS
 
-  h2 "Configuring WordPress..."
+  h2 "Configuring WordPress"
   h3 "Generating wp-config.php"
   WP core config
   STATUS
 
   h3 "Setting up database"
-  WP db create >/dev/null 2>&1
+  WP db create &>/dev/null
   STATUS
 
   # If an SQL file exists in /data => load it
-  if [ "$(stat -t /data/*.sql >/dev/null 2>&1 && echo $?)" ]; then
+  if [ "$(stat -t /data/*.sql &>/dev/null && echo $?)" ]; then
     data_path=$(find /data/*.sql | head -n 1)
-    h2 "Loading data backup from $data_path..."
+    h2 "Loading data backup from $data_path"
     h3 "Importing data backup"
-    WP db import "$data_path" >/dev/null 2>&1
+    WP db import "$data_path" &>/dev/null
     STATUS
 
     # If SEARCH_REPLACE is set => Replace URLs
@@ -180,12 +180,17 @@ initialize() {
     fi
   else
     h3 "No database backup found. Initializing new database"
-    WP core install >/dev/null 2>&1
+    WP core install &>/dev/null
     STATUS
   fi
 
-  h2 "Removing unneeded build dependencies..."
-  yes 'yes' | ee stack remove --mysql
+  h2 "Removing unneeded build dependencies"
+  h3 "Removing MySQL server"
+  yes 'yes' | ee stack remove --mysql &>/dev/null
+  STATUS
+  h3 "Clearing apt-cache"
+  rm -rf /var/lib/apt/lists/*
+  STATUS
 
   h2 "Initial setup complete!"
 }
@@ -196,11 +201,11 @@ check_plugins() {
   local plugin_name
 
   if [ ! "$PLUGINS" ]; then
-    h2 "No plugin dependencies listed. SKIPPING..."
+    h2 "No plugin dependencies listed. SKIPPING"
     return
   fi
 
-  h2 "Checking plugins..."
+  h2 "Checking plugins"
   while IFS=',' read -ra plugin; do
     for i in "${!plugin[@]}"; do
       plugin_name=$(echo "${plugin[$i]}" | xargs)
@@ -225,7 +230,7 @@ check_plugins() {
 # Removes bundled plugins and themes that aren't needed.
 # Installs themes that ARE needed.
 # note: This function only runs on the initial build (not restarts)
-remove_garbage() {
+wordpress_init() {
   h3 "Removing default plugins"
   WP plugin uninstall akismet hello --deactivate
   STATUS
@@ -250,7 +255,7 @@ remove_garbage() {
 cat_facts() {
   local fact
   h2 "While you wait, enjoy 1 free cat fact per minute."
-  sleep 1
+  sleep 1.5
   while [[ true ]]; do
     fact=$(curl -s -i -H "Accept: application/json" -H "Content-Type: application/json" -X GET http://catfacts-api.appspot.com/api/facts | grep -Po '(?<="facts": \[")(.+?)"')
     CF "${fact::-1}"
@@ -269,6 +274,7 @@ ORANGE='\033[0;33m'
 PURPLE='\033[0;34m'
 PINK='\033[0;35m'
 CYAN='\033[0;36m'
+BOLD='\E[1m'
 NC='\033[0m'
 
 h1() {
@@ -276,34 +282,35 @@ h1() {
   local input=$*
   local size=$((($len - ${#input})/2))
 
-  for ((i = 0; i < $len; i++)); do echo -ne "${PURPLE}="; done; echo ""
-  for ((i = 0; i < $size; i++)); do echo -n " "; done; echo -e "${PURPLE}$input"
-  for ((i = 0; i < $len; i++)); do echo -ne "${PURPLE}="; done; echo -e "${NC}"
+  for ((i = 0; i < $len; i++)); do echo -ne "${PURPLE}${BOLD}="; done; echo ""
+  for ((i = 0; i < $size; i++)); do echo -n " "; done; echo -e "${NC}${BOLD}$input"
+  for ((i = 0; i < $len; i++)); do echo -ne "${PURPLE}${BOLD}="; done; echo -e "${NC}"
 }
 
 h2() {
-  echo -e "${ORANGE}=> $*${NC}"
+  echo -e "${ORANGE}${BOLD}==>${NC}${BOLD} $*${NC}"
 }
 
 h3() {
   local width msg msglen
-  width=$(($(tput cols)-1))
+  width=$(($(tput cols)-10))
   msg=$*
   msglen=$((${#msg}+13))
-  printf "%b" "${CYAN}---> $msg"
-  for ((i = 0; i < $(($width - $msglen)); i++)); do echo -ne "${CYAN}."; done;
+  printf "%b" "${CYAN}${BOLD}  ->${NC} $msg"
+  for ((i = 0; i < $(($width - $msglen)); i++)); do echo -ne " "; done;
 }
 
 CF() {
-  echo -e "${PINK}≧◔◡◔≦ $*${NC}"
+  echo -e "${PINK}${BOLD}≧◔◡◔≦${NC} $*"
 }
 
 STATUS() {
+  local status=$?
   if [[ $1 == 'SKIP' ]]; then
     echo ""
     return
   fi
-  if [[ $? != 0 ]]; then
+  if [[ $status != 0 ]]; then
     echo -e "${RED}[FAILED]${NC}"
     return
   fi
