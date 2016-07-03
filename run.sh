@@ -78,7 +78,7 @@ main() {
 
   # Be sure MySQL is ready for connections at this point
   echo -en "${ORANGE}=> Waiting for MySQL to initialize..."
-  while ! mysqladmin ping --host=db --password=$DB_PASS --silent; do
+  while ! mysqladmin ping --host=db --password=$DB_PASS &>/dev/null; do
     sleep 1
   done
   echo -e "Ready!${NC}"
@@ -92,7 +92,7 @@ main() {
 
   h1 "Setup complete!"
   h2 "Restarting PHP-FPM"
-  /etc/init.d/php$PHP_VERSION-fpm restart
+  /etc/init.d/php$PHP_VERSION-fpm restart &>/dev/null
   h2 "Starting NGINX in the foreground"
   exec nginx -g "daemon off;"
 }
@@ -107,7 +107,7 @@ main() {
 # This function is ran only if a folder named $SITE_NAME
 # doesn't exist within /var/www
 initialize() {
-  local replacements data_path factpid
+  local data_path factpid
 
   h1 "Setting up site. (This can take up to 20 minutes)"
   dpkg-divert --local --rename --add /sbin/initctl &>/dev/null && ln -sf /bin/true /sbin/initctlq
@@ -120,84 +120,95 @@ initialize() {
   LC_ALL=en_US.UTF-8 ee site create ${SITE_NAME:-wordpress} --wpfc &>/dev/null
 
   # Alright, enough screwing around. Kill the cat facts!
-  h2 "Initialization complete! Hope you enjoyed today's helping of cat facts!"
-  kill $factpid
+  h2 "Initialization complete! That's all for today's helping of cat facts!"
+  kill $factpid &>/dev/null
 
   h2 "Installing and configuring dependencies..."
-  h3 "Installing Adminer..."
-  ee stack install --adminer
+  h3 "Installing Adminer"
+  ee stack install --adminer &>/dev/null
+  STATUS
 
-  h3 "Configuring WP-CLI..."
+  h3 "Configuring WP-CLI"
   wp_cli_config
+  STATUS
 
-  h3 "Updating to WP-CLI nightly..."
+  h3 "Updating to WP-CLI nightly"
   wp cli update --nightly --yes --allow-root
+  STATUS
 
-  h3 "Configuring PHP-FPM..."
+  h3 "Configuring PHP-FPM"
   php_fpm_config
+  STATUS
 
   if [[ "$LOCALHOST" == 'true' ]]; then
-    h3 "Site running on localhost. Adjusting nginx server name..."
+    h3 "Adjusting NGINX for localhost"
     sed -i "s/server_name.*;/server_name localhost;/" /etc/nginx/sites-enabled/$SITE_NAME
+    STATUS
   fi
 
-  h3 "Adjusting filesystem permissions..."
+  h3 "Adjusting filesystem permissions"
   chown -R www-data:www-data /var/www
+  STATUS
 
   h2 "Configuring WordPress..."
-  h3 "Generating wp-config.php..."
-  WP core config || ERROR $LINENO "Could not generate wp-config.php file"
+  h3 "Generating wp-config.php"
+  WP core config
+  STATUS
 
   h3 "Setting up database"
-  WP db create >/dev/null 2>&1 || ERROR $LINENO "Database creation failed"
+  WP db create >/dev/null 2>&1
+  STATUS
 
   # If an SQL file exists in /data => load it
   if [ "$(stat -t /data/*.sql >/dev/null 2>&1 && echo $?)" ]; then
     data_path=$(find /data/*.sql | head -n 1)
-    h3 "Loading data backup from $data_path..."
-    h3 "Importing data backup..."
-    WP db import "$data_path" >/dev/null 2>&1 || ERROR $LINENO "Could not import database"
+    h2 "Loading data backup from $data_path..."
+    h3 "Importing data backup"
+    WP db import "$data_path" >/dev/null 2>&1
+    STATUS
 
     # If SEARCH_REPLACE is set => Replace URLs
     if [[ "$SEARCH_REPLACE" ]]; then
-      h3 "Replacing URLs in database..."
-      replacements=$(WP search-replace "$BEFORE_URL" "$AFTER_URL" \
-        --no-quiet --skip-columns=guid | grep replacement) || \
-        ERROR $((LINENO-2)) "Could not execute SEARCH_REPLACE on database"
-      h3 "$replacements"
+      h3 "Replacing URLs in database"
+      WP search-replace "$BEFORE_URL" "$AFTER_URL" --skip-columns=guid
+      STATUS
     fi
   else
-    h3 "No database backup found. Initializing new database..."
-    WP core install >/dev/null 2>&1 || ERROR $LINENO "WordPress Install Failed"
+    h3 "No database backup found. Initializing new database"
+    WP core install >/dev/null 2>&1
+    STATUS
   fi
-
-  h2 "Initial setup complete!"
 
   h2 "Removing unneeded build dependencies..."
   yes 'yes' | ee stack remove --mysql
+
+  h2 "Initial setup complete!"
 }
 
 # Sweeps through the $PLUGINS list to make sure all that required get installed
 # If 'rest-api' plugin is requested, then the wp-rest-cli WP-CLI addon is also installed.
 check_plugins() {
   if [ ! "$PLUGINS" ]; then
-    h3 "No plugin dependencies listed. SKIPPING..."
+    h2 "No plugin dependencies listed. SKIPPING..."
     return
   fi
 
-  h3 "Checking plugins..."
+  h2 "Checking plugins..."
   while IFS=',' read -ra plugin; do
     for i in "${!plugin[@]}"; do
       local plugin_name="${plugin[$i]}"
       WP plugin is-installed "$plugin_name"
       if [ $? -eq 0 ]; then
-        h3 "($((i+1))/${#plugin[@]}) Plugin '$plugin_name' found. SKIPPING..."
+        h3 "($((i+1))/${#plugin[@]}) Plugin '$plugin_name' found. SKIPPING"
+        STATUS SKIP
       else
-        h3 "($((i+1))/${#plugin[@]}) Plugin '$plugin_name' not found. Installing..."
+        h3 "($((i+1))/${#plugin[@]}) Plugin '$plugin_name' not found. Installing"
         WP plugin install "$plugin_name"
+        STATUS
         if [ $plugin_name == 'rest-api' ]; then
-          h3 "Plugin 'rest-api' found. Installing 'wp-rest-cli' WP-CLI package..."
+          h3 "Plugin 'rest-api' found. Installing 'wp-rest-cli' WP-CLI package"
           wp package install danielbachhuber/wp-rest-cli --allow-root
+          STATUS
         fi
       fi
     done
@@ -208,10 +219,11 @@ check_plugins() {
 # Installs themes that ARE needed.
 # note: This function only runs on the initial build (not restarts)
 remove_garbage() {
-  h3 "Removing default plugins..."
+  h3 "Removing default plugins"
   WP plugin uninstall akismet hello --deactivate
+  STATUS
 
-  h3 "Removing unneeded themes..."
+  h3 "Removing unneeded themes"
   local remove_list=(twentyfourteen twentyfifteen twentysixteen)
   local theme_list=()
   while IFS=',' read -ra theme; do
@@ -220,10 +232,12 @@ remove_garbage() {
       theme_list+=("${theme[$i]}")
     done
     WP theme delete "${remove_list[@]}"
+    STATUS
   done <<< $THEMES
 
-  h3 "Installing needed themes..."
+  h3 "Installing needed themes"
   WP theme install "${theme_list[@]}"
+  STATUS
 }
 
 cat_facts() {
@@ -232,7 +246,7 @@ cat_facts() {
   sleep 1
   while [[ true ]]; do
     fact=$(curl -s -i -H "Accept: application/json" -H "Content-Type: application/json" -X GET http://catfacts-api.appspot.com/api/facts | grep -Po '(?<="facts": \[")(.+?)"')
-    h3 "${fact::-1}"
+    h4 "${fact::-1}"
     sleep 60
   done
 }
@@ -263,7 +277,28 @@ h2() {
 }
 
 h3() {
+  local width msg msglen
+  width=$(($(tput cols)-1))
+  msg=$*
+  msglen=$((${#msg}+13))
+  printf "%b" "${CYAN}---> $msg"
+  for ((i = 0; i < $(($width - $msglen)); i++)); do echo -ne "${CYAN}."; done;
+}
+
+h4() {
   echo -e "${CYAN}---> $*${NC}"
+}
+
+STATUS() {
+  if [[ $1 == 'SKIP' ]]; then
+    echo ""
+    return
+  fi
+  if [[ $? != 0 ]]; then
+    echo -e "${RED}[FAILED]${NC}"
+    return
+  fi
+  echo -e "${GREEN}[PASSED]${NC}"
 }
 
 ERROR() {
