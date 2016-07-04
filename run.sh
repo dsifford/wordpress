@@ -133,7 +133,14 @@ initialize() {
   factpid=$!
 
   h2 "Initializing"
-  LC_ALL=en_US.UTF-8 ee site create ${SITE_NAME:-wordpress} --wpfc &>/dev/null
+  h2 "Installing WordPress Stack"
+  echo "    |    PHP Version: $PHP_VERSION"
+  echo "    |     Cache Type: NGINX fastcgi"
+  echo "    | SSL Encryption: $([[ $LOCALHOST == true ]] && echo 'Disabled' || echo 'Enabled')"
+  yes 'y' | LC_ALL=en_US.UTF-8 ee site create ${SITE_NAME:-wordpress} \
+    --wpfc \
+    "$([[ $PHP_VERSION == 7.0 ]] && echo '--php7')" \
+    "$([[ $LOCALHOST != true ]] && echo '--letsencrypt')" &>/dev/null
 
   # Alright, enough screwing around. Kill the cat facts!
   h2 "Initialization complete! That's all for today's helping of cat facts!"
@@ -141,18 +148,6 @@ initialize() {
   wait $factpid 2>/dev/null
 
   h2 "Installing and configuring dependencies"
-
-  if [[ $LOCALHOST != true ]]; then
-    h3 "Non-localhost deployment. Enabling Let's Encrypt SSL encryption"
-    yes 'y' | ee site update $SITE_NAME --letsencrypt &>/dev/null
-    STATUS
-  fi
-
-  if [[ $PHP_VERSION == 7.0 ]]; then
-    h3 "Upgrading installation to PHP 7.0"
-    yes 'yes' | ee site update $SITE_NAME --php7 &>/dev/null
-    STATUS
-  fi
 
   h3 "Installing Adminer"
   ee stack install --adminer &>/dev/null
