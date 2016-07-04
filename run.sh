@@ -1,33 +1,37 @@
 #!/bin/bash
 
 ###
-# GLOBALS
-##
-PHP_VERSION=5.6
-
-###
 # ENVIRONMENT VARIABLES
 ##
 
-# Required
-[[ ! "$DB_PASS" ]] && ERROR $LINENO "Environment variable 'DB_PASS' must be set"
+# Build
+LOCALHOST=${LOCALHOST:-false}
+[[ "$SEARCH_REPLACE" ]] && \
+  BEFORE_URL=${SEARCH_REPLACE%%,*} &&
+  AFTER_URL=${SEARCH_REPLACE##*,}
 
-# Optional, with defaults
+# PHP
+PHP_VERSION=${PHP_VERSION:-5.6} && \
+  case $PHP_VERSION in
+    5.6 | 7.0)
+      ;;
+    *)
+      ERROR $LINENO "Invalid PHP version. (Must be 7.0 or 5.6)"
+      ;;
+  esac
+
+# Database
 DB_NAME=${DB_NAME:-wordpress}
 DB_USER=${DB_USER:-root}
+[[ ! "$DB_PASS" ]] && ERROR $LINENO "Environment variable 'DB_PASS' must be set"
+
+# WordPress
 ADMIN_EMAIL=${ADMIN_EMAIL:-"admin@$DB_NAME.com"}
-LOCALHOST=${LOCALHOST:-false}
 SITE_NAME=${SITE_NAME:-wordpress}
 THEMES=${THEMES:-twentysixteen}
 WP_DEBUG_DISPLAY=${WP_DEBUG_DISPLAY:-true}
 WP_DEBUG_LOG=${WP_DEBUG_LOG:-false}
 WP_DEBUG=${WP_DEBUG:-false}
-
-# Optional, no defaults
-[[ "$SEARCH_REPLACE" ]] && \
-  BEFORE_URL=${SEARCH_REPLACE%%,*} &&
-  AFTER_URL=${SEARCH_REPLACE##*,}
-
 
 ###
 # Configurations
@@ -134,6 +138,19 @@ initialize() {
   wait $factpid 2>/dev/null
 
   h2 "Installing and configuring dependencies"
+
+  if [[ $LOCALHOST != true ]]; then
+    h3 "Non-localhost deployment. Enabling Let's Encrypt SSL encryption"
+    yes 'y' | ee site update $SITE_NAME --letsencrypt &>/dev/null
+    STATUS
+  fi
+
+  if [[ $PHP_VERSION == 7.0 ]]; then
+    h3 "Upgrading installation to PHP 7.0"
+    yes 'yes' | ee site update $SITE_NAME --php7 &>/dev/null
+    STATUS
+  fi
+
   h3 "Installing Adminer"
   ee stack install --adminer &>/dev/null
   STATUS
@@ -158,7 +175,7 @@ initialize() {
   php_fpm_config
   STATUS
 
-  if [[ "$LOCALHOST" == 'true' ]]; then
+  if [[ "$LOCALHOST" == true ]]; then
     h3 "Adjusting NGINX for localhost"
     sed -i "s/server_name.*;/server_name localhost;/" /etc/nginx/sites-enabled/$SITE_NAME
     STATUS

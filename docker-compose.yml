@@ -10,12 +10,18 @@ services:
             - 8080:80
             - 443:443
         environment:
+            # Build
+            PHP_VERSION: 5.6
+            LOCALHOST: 'true'
+            SITE_NAME: yoursite.com
+
+            # Database
             DB_PASS: root # must match below
             DB_NAME: wordpress
             DB_USER: root
+
+            # WordPress
             ADMIN_EMAIL: admin@wordpress.com
-            SITE_NAME: yoursite.com
-            LOCALHOST: 'true'
             PLUGINS: >-
               academic-bloggers-toolkit,
               co-authors-plus,
