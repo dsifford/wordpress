@@ -134,9 +134,11 @@ initialize() {
 
   h2 "Initializing"
   h2 "Installing WordPress Stack"
-  echo "    |    PHP Version: $PHP_VERSION"
-  echo "    |     Cache Type: NGINX fastcgi"
-  echo "    | SSL Encryption: $([[ $LOCALHOST == true ]] && echo 'Disabled' || echo 'Enabled')"
+  printf "    | %s\n" \
+    "   PHP Version: $PHP_VERSION" \
+    "    Cache Type: NGINX fastcgi" \
+    "SSL Encryption: $([[ $LOCALHOST == true ]] && echo 'Disabled' || echo 'Enabled')"
+
   yes 'y' | LC_ALL=en_US.UTF-8 ee site create ${SITE_NAME:-wordpress} \
     --wpfc \
     "$([[ $PHP_VERSION == 7.0 ]] && echo '--php7')" \
@@ -282,6 +284,7 @@ wordpress_init() {
 
 cat_facts() {
   local fact
+  sleep 2
   h2 "While you wait, enjoy 1 free cat fact per minute."
   sleep 1.5
   while [[ true ]]; do
