@@ -141,6 +141,10 @@ initialize() {
   h3 "Configuring Adminer login credentials"
   ee secure --auth "$(echo $DB_USER)" "$(echo $DB_PASS)"
   STATUS
+  echo "     Adminer Username: $DB_USER"
+  echo "     Adminer Password: $DB_PASS"
+  echo "                 Host: $DB_USER"
+  echo "             Database: $DB_NAME"
 
   h3 "Configuring WP-CLI"
   wp_cli_config
