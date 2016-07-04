@@ -14,6 +14,7 @@ PHP_VERSION=5.6
 
 # Optional, with defaults
 DB_NAME=${DB_NAME:-wordpress}
+DB_USER=${DB_USER:-root}
 ADMIN_EMAIL=${ADMIN_EMAIL:-"admin@$DB_NAME.com"}
 LOCALHOST=${LOCALHOST:-false}
 SITE_NAME=${SITE_NAME:-wordpress}
@@ -38,7 +39,7 @@ path: /var/www/$SITE_NAME/htdocs
 quiet: true
 
 core config:
-  dbuser: root
+  dbuser: $DB_USER
   dbpass: $DB_PASS
   dbname: $DB_NAME
   dbhost: db
@@ -50,7 +51,7 @@ core config:
 core install:
   url: $([ "$AFTER_URL" ] && echo "$AFTER_URL" || echo localhost:8080)
   title: $SITE_NAME
-  admin_user: root
+  admin_user: $DB_USER
   admin_password: $DB_PASS
   admin_email: $ADMIN_EMAIL
   skip-email: true
@@ -135,6 +136,10 @@ initialize() {
   h2 "Installing and configuring dependencies"
   h3 "Installing Adminer"
   ee stack install --adminer &>/dev/null
+  STATUS
+
+  h3 "Configuring Adminer login credentials"
+  ee secure --auth "$(echo $DB_USER)" "$(echo $DB_PASS)"
   STATUS
 
   h3 "Configuring WP-CLI"
@@ -222,7 +227,7 @@ check_plugins() {
         WP plugin install "$plugin_name"
         STATUS
         if [ $plugin_name == 'rest-api' ]; then
-          h3 "Plugin 'rest-api' found. Installing 'wp-rest-cli' WP-CLI package"
+          h3 "($((i+1)).5/${#plugin[@]}) Installing 'wp-rest-cli' WP-CLI package"
           wp package install danielbachhuber/wp-rest-cli --allow-root
           STATUS
         fi
