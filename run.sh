@@ -133,16 +133,7 @@ initialize() {
   factpid=$!
 
   h2 "Initializing"
-  h2 "Installing WordPress Stack"
-  printf "    | %s\n" \
-    "   PHP Version: $PHP_VERSION" \
-    "    Cache Type: NGINX fastcgi" \
-    "SSL Encryption: $([[ $LOCALHOST == true ]] && echo 'Disabled' || echo 'Enabled')"
-
-  yes 'y' | LC_ALL=en_US.UTF-8 ee site create ${SITE_NAME:-wordpress} \
-    --wpfc \
-    "$([[ $PHP_VERSION == 7.0 ]] && echo '--php7')" \
-    "$([[ $LOCALHOST != true ]] && echo '--letsencrypt')" &>/dev/null
+  easyengine_init
 
   # Alright, enough screwing around. Kill the cat facts!
   h2 "Initialization complete! That's all for today's helping of cat facts!"
@@ -225,6 +216,23 @@ initialize() {
   h2 "Initial setup complete!"
 }
 
+# Still pretty featureless, but this will be used to create the build string
+easyengine_init() {
+  local options="$SITE_NAME --wpfc "
+
+  [[ $PHP_VERSION == 7.0 ]] && options+='--php7 '
+  [[ $LOCALHOST != true ]]&& options+='--letsencrypt'
+
+  h2 "Installing WordPress Stack for $SITE_NAME"
+  printf "    | %s\n" \
+    "   PHP Version: $PHP_VERSION" \
+    "    Cache Type: NGINX fastcgi" \
+    "SSL Encryption: $([[ $LOCALHOST == true ]] && echo 'Disabled' || echo 'Enabled')"
+
+  yes 'y' | LC_ALL=en_US.UTF-8 ee site create $options &>/dev/null
+
+}
+
 # Sweeps through the $PLUGINS list to make sure all that required get installed
 # If 'rest-api' plugin is requested, then the wp-rest-cli WP-CLI addon is also installed.
 check_plugins() {
@@ -284,8 +292,8 @@ wordpress_init() {
 
 cat_facts() {
   local fact
-  sleep 2
-  h2 "While you wait, enjoy 1 free cat fact per minute."
+  sleep 5
+  h2 "While you wait, enjoy 1 complementary cat fact per minute."
   sleep 1.5
   while [[ true ]]; do
     fact=$(curl -s -i -H "Accept: application/json" -H "Content-Type: application/json" -X GET http://catfacts-api.appspot.com/api/facts | grep -Po '(?<="facts": \[")(.+?)"')
