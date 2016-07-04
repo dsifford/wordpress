@@ -143,7 +143,7 @@ initialize() {
   STATUS
   echo "     Adminer Username: $DB_USER"
   echo "     Adminer Password: $DB_PASS"
-  echo "                 Host: $DB_USER"
+  echo "                 Host: db"
   echo "             Database: $DB_NAME"
 
   h3 "Configuring WP-CLI"
