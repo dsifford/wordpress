@@ -14,6 +14,7 @@ Variable Name | Default Value | Description
 -------------|---------------|------------|--------
 `DB_PASS`|`null` (**required**)|Password to the linked MySQL (MariaDB) database. Must match `MYSQL_ROOT_PASSWORD`
 `DB_NAME`| `wordpress` | Name of the database for your WordPress installation.
+`PHP_VERSION` | `5.6` | The version of PHP you wish to use (Only `5.6` and `7.0` are accepted)
 `LOCALHOST`| `false` | Set to `true` if this is an installation meant to be run on localhost. (This is what you'd choose for development)
 `SITE_NAME`| `wordpress` | Name (including top-level-domain) of your site. <br>**Note:** This is required if `LOCALHOST` is `false`.
 `PLUGINS`| `null` | Comma-separated list (or yaml array) of plugins that you depend on.
