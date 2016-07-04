@@ -143,7 +143,7 @@ initialize() {
   STATUS
   echo "     Adminer Username: $DB_USER"
   echo "     Adminer Password: $DB_PASS"
-  echo "                 Host: db"
+  echo "               Server: db"
   echo "             Database: $DB_NAME"
 
   h3 "Configuring WP-CLI"
@@ -231,7 +231,7 @@ check_plugins() {
         WP plugin install "$plugin_name"
         STATUS
         if [ $plugin_name == 'rest-api' ]; then
-          h3 "($((i+1)).5/${#plugin[@]}) Installing 'wp-rest-cli' WP-CLI package"
+          h3 "       Installing 'wp-rest-cli' WP-CLI package"
           wp package install danielbachhuber/wp-rest-cli --allow-root
           STATUS
         fi
