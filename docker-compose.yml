@@ -12,16 +12,19 @@ services:
         environment:
             DB_PASS: root # must match below
             DB_NAME: wordpress
-            SITE_NAME: aliemu.com
+            DB_USER: root
+            ADMIN_EMAIL: admin@wordpress.com
+            SITE_NAME: yoursite.com
             LOCALHOST: 'true'
             PLUGINS: >-
               academic-bloggers-toolkit,
               co-authors-plus,
               rest-api
+            THEMES: twentysixteen
             SEARCH_REPLACE: yoursite.com,localhost:8080
-            WP_DEBUG: 'true'
-            WP_DEBUG_LOG: 'true'
-            WP_DEBUG_DISPLAY: 'false'
+            WP_DEBUG: 'false'
+            WP_DEBUG_LOG: 'false'
+            WP_DEBUG_DISPLAY: 'true'
     db: # Must be named 'db'
         image: mariadb:10
         ports:
