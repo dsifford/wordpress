@@ -27,7 +27,10 @@ DB_USER=${DB_USER:-root}
 
 # WordPress
 ADMIN_EMAIL=${ADMIN_EMAIL:-"admin@$DB_NAME.com"}
-SITE_NAME=${SITE_NAME:-wordpress}
+SITE_NAME=${SITE_NAME:-wordpress} && \
+  if [[ $SITE_NAME == 'wordpress' && $LOCALHOST != true ]]; then
+    ERROR $(($LINENO-2)) "SITE_NAME must be set if not running on localhost"
+  fi
 THEMES=${THEMES:-twentysixteen}
 WP_DEBUG_DISPLAY=${WP_DEBUG_DISPLAY:-true}
 WP_DEBUG_LOG=${WP_DEBUG_LOG:-false}

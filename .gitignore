@@ -1,4 +1,4 @@
 config/default.conf
 test.sh
-dc.yml
+docker-compose.yml
 data
