@@ -296,7 +296,7 @@ cat_facts() {
   h2 "While you wait, enjoy 1 complementary cat fact per minute."
   sleep 1.5
   while [[ true ]]; do
-    fact=$(curl -s -i -H "Accept: application/json" -H "Content-Type: application/json" -X GET http://catfacts-api.appspot.com/api/facts | grep -Po '(?<="facts": \[")(.+?)"')
+    fact=$(curl -s -i -H "Accept: application/json" -H "Content-Type: application/json" -X GET http://catfacts-api.appspot.com/api/facts | grep -oP '\["\K(.+)(?="\])')
     CF "${fact::-1}"
     sleep 60
   done
