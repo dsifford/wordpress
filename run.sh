@@ -317,7 +317,7 @@ cat_facts() {
   sleep 1.5
   while [[ true ]]; do
     fact=$(curl -s -i -H "Accept: application/json" -H "Content-Type: application/json" -X GET http://catfacts-api.appspot.com/api/facts | grep -oP '\["\K(.+)(?="\])')
-    CF "${fact::-1}"
+    CF $fact
     sleep 60
   done
 }
@@ -347,7 +347,7 @@ h1() {
 }
 
 h2() {
-  echo -e "${ORANGE}${BOLD}==>${NC}${BOLD} $*${NC}"
+  echo -e "${ORANGE}${BOLD}==>${NC}${BOLD} $*${NC}" | sed -e 's/\\//g'
 }
 
 h3() {
