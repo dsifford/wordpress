@@ -243,6 +243,7 @@ check_plugins() {
     return
   fi
 
+  h2 "Checking Plugins..."
   while IFS=',' read -ra plugin; do
     for i in "${!plugin[@]}"; do
       plugin_name=$(echo "${plugin[$i]}" | xargs)
@@ -276,7 +277,7 @@ check_plugins() {
         WP plugin --activate install "$plugin_url"
         STATUS
         if [ $plugin_name == 'rest-api' ]; then
-          h3 "       Installing 'wp-rest-cli' WP-CLI package"
+          h3 "Installing 'wp-rest-cli' WP-CLI package"
           wp package install danielbachhuber/wp-rest-cli --allow-root
           STATUS
         fi
