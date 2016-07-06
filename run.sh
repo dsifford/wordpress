@@ -82,6 +82,8 @@ main() {
   # If no site directory exists, then this must be the initial installation
   if [ ! -e /var/www/$SITE_NAME/htdocs/wp-config.php ]; then
     initialize
+  else
+    h1 "Restarting containers from stopped state"
   fi
 
   # Be sure MySQL is ready for connections at this point
