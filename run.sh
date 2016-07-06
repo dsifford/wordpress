@@ -80,7 +80,7 @@ EOF
 main() {
 
   # If no site directory exists, then this must be the initial installation
-  if [ ! -d /var/www/$SITE_NAME/htdocs/wp-content/plugins/akismet ]; then
+  if [ ! -e /var/www/$SITE_NAME/htdocs/wp-config.php ]; then
     initialize
   fi
 
