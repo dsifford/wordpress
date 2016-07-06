@@ -12,6 +12,7 @@ RUN apt-get update \
         python3-setuptools \
         python3-dev \
         python3-apt \
+        rsync \
         unzip \
         vim
 

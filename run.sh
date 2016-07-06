@@ -208,13 +208,7 @@ initialize() {
     STATUS
   fi
 
-  h2 "Removing unneeded build dependencies"
-  h3 "Removing MySQL server"
-  yes 'yes' | ee stack remove --mysql &>/dev/null
-  STATUS
-  h3 "Clearing apt-cache"
-  rm -rf /var/lib/apt/lists/*
-  STATUS
+  file_cleanup
 
   h2 "Initial setup complete!"
 }
@@ -311,6 +305,32 @@ wordpress_init() {
 
   h3 "Installing needed themes"
   WP theme install "${theme_list[@]}"
+  STATUS
+}
+
+file_cleanup() {
+
+  local purges='--mysql '
+  local purgemsg="Purging: MySQL"
+
+  [[ $PHP_VERSION == 7.0 ]] && purges+='--php ' && purgemsg+=', PHP 5.6 '
+
+  h2 "Removing unneeded build dependencies"
+
+  h3 "$purgemsg"
+  yes 'yes' | ee stack purge "$purges" &>/dev/null
+  STATUS
+
+  # TODO: Keep adding to this list
+  h3 "Removing unneeded system packages"
+  DEBIAN_FRONTEND=noninteractive apt-get remove -yqq --purge --auto-remove \
+    manpages \
+    manpages-dev \
+  &>/dev/null
+  STATUS
+
+  h3 "Clearing apt-cache"
+  rm -rf /var/lib/apt/lists/*
   STATUS
 }
 
