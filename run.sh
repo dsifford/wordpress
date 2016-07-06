@@ -318,7 +318,7 @@ file_cleanup() {
   h2 "Removing unneeded build dependencies"
 
   h3 "$purgemsg"
-  yes 'yes' | ee stack purge "$purges" &>/dev/null
+  yes 'yes' | ee stack purge $purges &>/dev/null
   STATUS
 
   # TODO: Keep adding to this list
@@ -371,7 +371,7 @@ h1() {
 }
 
 h2() {
-  echo -e "${ORANGE}${BOLD}==>${NC}${BOLD} $*${NC}" | sed -e 's/\\//g'
+  echo -e "${ORANGE}${BOLD}==>${NC}${BOLD} $*${NC}"
 }
 
 h3() {
@@ -384,7 +384,7 @@ h3() {
 }
 
 CF() {
-  echo -e "${PINK}${BOLD}≧◔◡◔≦${NC} $*"
+  echo -e "${PINK}${BOLD}≧◔◡◔≦${NC} $*" | sed -e 's/\\//g'
 }
 
 STATUS() {
