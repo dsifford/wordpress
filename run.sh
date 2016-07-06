@@ -123,7 +123,7 @@ main() {
 # This function is ran only if a folder named $SITE_NAME
 # doesn't exist within /var/www
 initialize() {
-  local data_path factpid
+  local data_path factpid replacements
 
   h1 "Setting up site. (This can take up to 20 minutes)"
   dpkg-divert --local --rename --add /sbin/initctl &>/dev/null && ln -sf /bin/true /sbin/initctlq
@@ -196,8 +196,9 @@ initialize() {
     # If SEARCH_REPLACE is set => Replace URLs
     if [[ "$SEARCH_REPLACE" ]]; then
       h3 "Replacing URLs in database"
-      WP search-replace "$BEFORE_URL" "$AFTER_URL" --skip-columns=guid
+      replacements=$(WP search-replace --no-quiet "$BEFORE_URL" "$AFTER_URL" --skip-columns=guid | tail -1 | awk '{print $3}')
       STATUS
+      h2 "$replacements replacements made in database"
     fi
   else
     h3 "No database backup found. Initializing new database"
