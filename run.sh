@@ -243,10 +243,30 @@ check_plugins() {
     return
   fi
 
-  h2 "Checking plugins"
   while IFS=',' read -ra plugin; do
     for i in "${!plugin[@]}"; do
       plugin_name=$(echo "${plugin[$i]}" | xargs)
+      plugin_url=
+
+      # If plugin matches a URL
+      if [[ $plugin_name =~ ^https?://[www]?.+ ]]; then
+        echo $plugin_name 'matches URL'
+        h3 "Can't check if plugin is already installed using this format!" && STATUS SKIP
+        h3 "Switch your compose file to [plugin-slug]http://pluginurl.com for better checks" && STATUS SKIP
+        h3 "($((i+1))/${#plugin[@]}) '$plugin_name' not found. Installing"
+        WP plugin install "$plugin_name"
+        STATUS
+        continue
+      fi
+
+      # If plugin matches a URL in new URL format
+      if [[ $plugin_name =~ ^\[.+\]https?://[www]?.+ ]]; then
+        plugin_url=${plugin_name##\[*\]}
+        plugin_name="$(echo $plugin_name | grep -oP '\[\K(.+)(?=\])')"
+      fi
+
+      plugin_url=${plugin_url:-$plugin_name}
+
       WP plugin is-installed "$plugin_name"
       if [ $? -eq 0 ]; then
         h3 "($((i+1))/${#plugin[@]}) '$plugin_name' found. SKIPPING"
