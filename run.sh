@@ -273,7 +273,7 @@ check_plugins() {
         STATUS SKIP
       else
         h3 "($((i+1))/${#plugin[@]}) '$plugin_name' not found. Installing"
-        WP plugin install "$plugin_name"
+        WP plugin --activate install "$plugin_name"
         STATUS
         if [ $plugin_name == 'rest-api' ]; then
           h3 "       Installing 'wp-rest-cli' WP-CLI package"
