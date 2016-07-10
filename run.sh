@@ -313,7 +313,7 @@ file_cleanup() {
   local purges='--mysql '
   local purgemsg="Purging: MySQL"
 
-  [[ $PHP_VERSION == 7.0 ]] && purges+='--php ' && purgemsg+=', PHP 5.6 '
+  # [[ $PHP_VERSION == 7.0 ]] && purges+='--php ' && purgemsg+=', PHP 5.6 '
 
   h2 "Removing unneeded build dependencies"
 
