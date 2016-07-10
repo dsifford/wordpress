@@ -36,46 +36,10 @@ WP_DEBUG_DISPLAY=${WP_DEBUG_DISPLAY:-true}
 WP_DEBUG_LOG=${WP_DEBUG_LOG:-false}
 WP_DEBUG=${WP_DEBUG:-false}
 
+
 ###
-# Configurations
+# Main Function
 ##
-
-wp_cli_config() {
-cat > /wp-cli.yml <<EOF
-path: /var/www/$SITE_NAME/htdocs
-quiet: true
-
-core config:
-  dbuser: $DB_USER
-  dbpass: $DB_PASS
-  dbname: $DB_NAME
-  dbhost: db
-  extra-php: |
-    define( 'WP_DEBUG', $WP_DEBUG );
-    define( 'WP_DEBUG_LOG', $WP_DEBUG_LOG );
-    define( 'WP_DEBUG_DISPLAY', $WP_DEBUG_DISPLAY );
-
-core install:
-  url: $([ "$AFTER_URL" ] && echo "$AFTER_URL" || echo localhost:8080)
-  title: $SITE_NAME
-  admin_user: $DB_USER
-  admin_password: $DB_PASS
-  admin_email: $ADMIN_EMAIL
-  skip-email: true
-EOF
-}
-
-php_fpm_config() {
-mkdir -p /run/php
-cat > /etc/php/$PHP_VERSION/fpm/php-fpm.conf <<EOF
-[global]
-daemonize = no
-pid = /run/php/php$PHP_VERSION-fpm.pid
-error_log = /var/log/php/$PHP_VERSION/fpm.log
-log_level = notice
-include = /etc/php/$PHP_VERSION/fpm/pool.d/*.conf
-EOF
-}
 
 main() {
 
@@ -157,7 +121,7 @@ initialize() {
   echo "             Database: $DB_NAME"
 
   h3 "Configuring WP-CLI"
-  wp_cli_config
+  generate_config_for wp-cli
   STATUS
 
   h3 "Updating to WP-CLI nightly"
@@ -165,12 +129,18 @@ initialize() {
   STATUS
 
   h3 "Configuring PHP-FPM"
-  php_fpm_config
+  generate_config_for php-fpm
   STATUS
 
   if [[ "$LOCALHOST" == true ]]; then
     h3 "Adjusting NGINX for localhost"
     sed -i "s/server_name.*;/server_name localhost;/" /etc/nginx/sites-enabled/$SITE_NAME
+    STATUS
+  fi
+
+  if [[ "$PHP_VERSION" == 7.0 ]]; then
+    h3 "Adjusting NGINX confs on port 22222 for PHP 7"
+    generate_config_for php7-22222
     STATUS
   fi
 
@@ -313,7 +283,7 @@ file_cleanup() {
   local purges='--mysql '
   local purgemsg="Purging: MySQL"
 
-  # [[ $PHP_VERSION == 7.0 ]] && purges+='--php ' && purgemsg+=', PHP 5.6 '
+  [[ $PHP_VERSION == 7.0 ]] && purges+='--php ' && purgemsg+=', PHP 5.6 '
 
   h2 "Removing unneeded build dependencies"
 
@@ -334,6 +304,93 @@ file_cleanup() {
   STATUS
 }
 
+###
+# Configurations
+##
+
+generate_config_for() {
+
+case "$1" in
+
+wp-cli)
+cat > /wp-cli.yml <<EOF
+path: /var/www/$SITE_NAME/htdocs
+quiet: true
+
+core config:
+  dbuser: $DB_USER
+  dbpass: $DB_PASS
+  dbname: $DB_NAME
+  dbhost: db
+  extra-php: |
+    define( 'WP_DEBUG', $WP_DEBUG );
+    define( 'WP_DEBUG_LOG', $WP_DEBUG_LOG );
+    define( 'WP_DEBUG_DISPLAY', $WP_DEBUG_DISPLAY );
+
+core install:
+  url: $([ "$AFTER_URL" ] && echo "$AFTER_URL" || echo localhost:8080)
+  title: $SITE_NAME
+  admin_user: $DB_USER
+  admin_password: $DB_PASS
+  admin_email: $ADMIN_EMAIL
+  skip-email: true
+EOF
+;;
+
+php-fpm)
+mkdir -p /run/php
+cat > /etc/php/$PHP_VERSION/fpm/php-fpm.conf <<EOF
+[global]
+daemonize = no
+pid = /run/php/php$PHP_VERSION-fpm.pid
+error_log = /var/log/php/$PHP_VERSION/fpm.log
+log_level = notice
+include = /etc/php/$PHP_VERSION/fpm/pool.d/*.conf
+EOF
+;;
+
+php7-22222)
+cat > /etc/nginx/sites-available/22222 <<EOF
+# EasyEngine admin NGINX CONFIGURATION
+# Adjusted for PHP 7
+
+server {
+
+  listen 22222 default_server ssl http2;
+
+  access_log   /var/log/nginx/22222.access.log rt_cache;
+  error_log    /var/log/nginx/22222.error.log;
+
+  ssl_certificate /var/www/22222/cert/22222.crt;
+  ssl_certificate_key /var/www/22222/cert/22222.key;
+
+  # Force HTTP to HTTPS
+  error_page 497 =200 https://\$host:22222\$request_uri;
+
+  root /var/www/22222/htdocs;
+  index index.php index.htm index.html;
+
+  # Turn on directory listing
+  autoindex on;
+
+  # HTTP Authentication on port 22222
+  include common/acl.conf;
+  include common/php7.conf;
+  include common/locations-php7.conf;
+  include /var/www/22222/conf/nginx/*.conf;
+
+}
+EOF
+;;
+
+esac
+
+}
+
+###
+# Cat Facts! Because, why not? (also because easyengine is painfully slow)
+##
+
 cat_facts() {
   local fact
   sleep 5
@@ -344,6 +401,10 @@ cat_facts() {
     CF $fact
     sleep 60
   done
+}
+
+CF() {
+  echo -e "${PINK}${BOLD}≧◔◡◔≦${NC} $*" | sed -e 's/\\//g'
 }
 
 
@@ -381,10 +442,6 @@ h3() {
   msglen=$((${#msg}+13))
   printf "%b" "${CYAN}${BOLD}  ->${NC} $msg"
   for ((i = 0; i < $(($width - $msglen)); i++)); do echo -ne " "; done;
-}
-
-CF() {
-  echo -e "${PINK}${BOLD}≧◔◡◔≦${NC} $*" | sed -e 's/\\//g'
 }
 
 STATUS() {
