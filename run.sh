@@ -8,7 +8,7 @@
 LOCALHOST=${LOCALHOST:-false}
 [[ "$SEARCH_REPLACE" ]] && \
   BEFORE_URL=${SEARCH_REPLACE%%,*} &&
-  AFTER_URL=${SEARCH_REPLACE##*,}
+  AFTER_URL=s
 
 # PHP
 PHP_VERSION=${PHP_VERSION:-5.6} && \
@@ -132,14 +132,17 @@ initialize() {
   generate_config_for php-fpm
   STATUS
 
+  # FIXME
   if [[ "$LOCALHOST" == true ]]; then
-    h3 "Adjusting NGINX for localhost"
-    if [[ "$SEARCH_REPLACE" ]]; then
-      sed -i "s/server_name.*;/server_name $(echo $AFTER_URL | grep -Po '(?:https?:\/\/)?\K([\w.]+)(?=:)?');/" /etc/nginx/sites-enabled/$SITE_NAME
+    if [[ $AFTER_URL =~ (https?://)?(www.)?(.+):[0-9]{2,4} ]]; then
+      h3 "Adjusting NGINX for localhost"
+      sed -i "s!server_name.*;!server_name ${BASH_REMATCH[3]};!" /etc/nginx/sites-enabled/$SITE_NAME
+      STATUS
     else
+      h3 "Adjusting NGINX for localhost"
       sed -i "s/server_name.*;/server_name localhost;/" /etc/nginx/sites-enabled/$SITE_NAME
+      STATUS
     fi
-    STATUS
   fi
 
   if [[ "$PHP_VERSION" == 7.0 ]]; then
@@ -249,7 +252,7 @@ check_plugins() {
         STATUS
         if [ $plugin_name == 'rest-api' ]; then
           h3 "Installing 'restful' WP-CLI package"
-          wp package install danielbachhuber/restful --allow-root
+          wp package install wp-cli/restful --allow-root
           STATUS
         fi
       fi
