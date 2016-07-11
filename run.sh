@@ -89,22 +89,17 @@ main() {
 # This function is ran only if a folder named $SITE_NAME
 # doesn't exist within /var/www
 initialize() {
-  local data_path factpid replacements
+  local data_path loaderpid replacements
 
   h1 "Setting up site. (This can take up to 20 minutes)"
   dpkg-divert --local --rename --add /sbin/initctl &>/dev/null && ln -sf /bin/true /sbin/initctlq
 
-  # EasyEngine is painfully slow. To ease the torture, serve up cat facts every minute :)
-  cat_facts&
-  factpid=$!
-
-  h2 "Initializing"
+  loader Initializing&
+  loaderpid=$!
   easyengine_init
 
-  # Alright, enough screwing around. Kill the cat facts!
-  h2 "Initialization complete! That's all for today's helping of cat facts!"
-  kill $factpid
-  wait $factpid 2>/dev/null
+  echo -e "$ORANGE$BOLD==>$NC$BOLD Initializing$NC $GREEN✓$NC" && kill $loaderpid
+  wait $loaderpid 2>/dev/null
 
   h2 "Installing and configuring dependencies"
 
@@ -394,25 +389,24 @@ esac
 }
 
 ###
-# Cat Facts! Because, why not? (also because easyengine is painfully slow)
+# Loading Spinner
 ##
-
-cat_facts() {
-  local fact
-  sleep 5
-  h2 "While you wait, enjoy 1 complementary cat fact per minute."
-  sleep 1.5
+loader() {
+  local sec min spinner
+  min=$((-1))
+  spinner=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
   while [[ true ]]; do
-    fact=$(curl -s -i -H "Accept: application/json" -H "Content-Type: application/json" -X GET http://catfacts-api.appspot.com/api/facts | grep -oP '\["\K(.+)(?="\])')
-    CF $fact
-    sleep 60
+    sec=$((0))
+    min=$(($min+1))
+    while [[ $sec -lt 60 ]]; do
+      for i in "${spinner[@]}"; do
+        printf "${ORANGE}${BOLD}==>${NC}${BOLD} $*${NC} ${PINK}%s${NC} (%02d:%02d elapsed)\r" $i $min $sec
+        sleep 0.1
+      done
+      sec=$(($sec+1))
+    done
   done
 }
-
-CF() {
-  echo -e "${PINK}${BOLD}≧◔◡◔≦${NC} $*" | sed -e 's/\\//g'
-}
-
 
 ###
 # HELPERS
@@ -442,12 +436,7 @@ h2() {
 }
 
 h3() {
-  local width msg msglen
-  width=$(($(tput cols)-10))
-  msg=$*
-  msglen=$((${#msg}+13))
-  printf "%b" "${CYAN}${BOLD}  ->${NC} $msg"
-  for ((i = 0; i < $(($width - $msglen)); i++)); do echo -ne " "; done;
+  printf "%b " "${CYAN}${BOLD}  ->${NC} $*"
 }
 
 STATUS() {
@@ -457,10 +446,10 @@ STATUS() {
     return
   fi
   if [[ $status != 0 ]]; then
-    echo -e "${RED}[FAILED]${NC}"
+    echo -e "${RED}✘${NC}"
     return
   fi
-  echo -e "${GREEN}[PASSED]${NC}"
+  echo -e "${GREEN}✓${NC}"
 }
 
 ERROR() {
