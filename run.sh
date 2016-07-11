@@ -113,7 +113,7 @@ initialize() {
   STATUS
 
   h3 "Configuring Adminer login credentials"
-  ee secure --auth "$(echo $DB_USER)" "$(echo $DB_PASS)"
+  ee secure --auth $DB_USER $DB_PASS
   STATUS
   echo "     Adminer Username: $DB_USER"
   echo "     Adminer Password: $DB_PASS"
