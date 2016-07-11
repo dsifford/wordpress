@@ -8,7 +8,7 @@
 LOCALHOST=${LOCALHOST:-false}
 [[ "$SEARCH_REPLACE" ]] && \
   BEFORE_URL=${SEARCH_REPLACE%%,*} &&
-  AFTER_URL=s
+  AFTER_URL=${SEARCH_REPLACE##*,}
 
 # PHP
 PHP_VERSION=${PHP_VERSION:-5.6} && \
@@ -132,7 +132,6 @@ initialize() {
   generate_config_for php-fpm
   STATUS
 
-  # FIXME
   if [[ "$LOCALHOST" == true ]]; then
     if [[ $AFTER_URL =~ (https?://)?(www.)?(.+):[0-9]{2,4} ]]; then
       h3 "Adjusting NGINX for localhost"
