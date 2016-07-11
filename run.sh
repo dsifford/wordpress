@@ -135,7 +135,7 @@ initialize() {
   if [[ "$LOCALHOST" == true ]]; then
     h3 "Adjusting NGINX for localhost"
     if [[ "$SEARCH_REPLACE" ]]; then
-      sed -i "s/server_name.*;/server_name ${AFTER_URL%:*};/" /etc/nginx/sites-enabled/$SITE_NAME
+      sed -i "s/server_name.*;/server_name $(echo $AFTER_URL | grep -Po '(?:https?:\/\/)?\K([\w.]+)(?=:)?');/" /etc/nginx/sites-enabled/$SITE_NAME
     else
       sed -i "s/server_name.*;/server_name localhost;/" /etc/nginx/sites-enabled/$SITE_NAME
     fi
