@@ -72,10 +72,10 @@ main() {
   find /var/www/$SITE_NAME -type f -exec chmod 644 {} \; 2>/dev/null
   STATUS
 
-  h1 "Setup complete!"
   h2 "Restarting PHP-FPM"
   /etc/init.d/php$PHP_VERSION-fpm restart &>/dev/null
   h2 "Starting NGINX in the foreground"
+  h1 "Setup complete!"
   exec nginx -g "daemon off;"
 }
 
@@ -201,7 +201,7 @@ easyengine_init() {
 }
 
 # Sweeps through the $PLUGINS list to make sure all that required get installed
-# If 'rest-api' plugin is requested, then the wp-rest-cli WP-CLI addon is also installed.
+# If 'rest-api' plugin is requested, then the restful WP-CLI addon is also installed.
 check_plugins() {
   local plugin_name
 
@@ -244,8 +244,8 @@ check_plugins() {
         WP plugin --activate install "$plugin_url"
         STATUS
         if [ $plugin_name == 'rest-api' ]; then
-          h3 "Installing 'wp-rest-cli' WP-CLI package"
-          wp package install danielbachhuber/wp-rest-cli --allow-root
+          h3 "Installing 'restful' WP-CLI package"
+          wp package install danielbachhuber/restful --allow-root
           STATUS
         fi
       fi
