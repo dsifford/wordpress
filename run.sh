@@ -94,11 +94,11 @@ initialize() {
   h1 "Setting up site. (This can take up to 20 minutes)"
   dpkg-divert --local --rename --add /sbin/initctl &>/dev/null && ln -sf /bin/true /sbin/initctlq
 
-  loader Initializing&
+  loader Installing&
   loaderpid=$!
   easyengine_init
 
-  echo -e "$ORANGE$BOLD==>$NC$BOLD Initializing$NC $GREEN✓$NC" && kill $loaderpid
+  echo -e "$ORANGE$BOLD==>$NC$BOLD Installing$NC $GREEN✓$NC" && kill $loaderpid
   wait $loaderpid 2>/dev/null
 
   h2 "Installing and configuring dependencies"
@@ -191,7 +191,7 @@ easyengine_init() {
   [[ $PHP_VERSION == 7.0 ]] && options+='--php7 '
   [[ $LOCALHOST != true ]]&& options+='--letsencrypt'
 
-  h2 "Installing WordPress Stack for $SITE_NAME"
+  h2 "Preparing WordPress Stack for $SITE_NAME"
   printf "    | %s\n" \
     "   PHP Version: $PHP_VERSION" \
     "    Cache Type: NGINX fastcgi" \
@@ -395,6 +395,7 @@ loader() {
   local sec min spinner
   min=$((-1))
   spinner=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
+  sleep 2
   while [[ true ]]; do
     sec=$((0))
     min=$(($min+1))
