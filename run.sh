@@ -134,7 +134,11 @@ initialize() {
 
   if [[ "$LOCALHOST" == true ]]; then
     h3 "Adjusting NGINX for localhost"
-    sed -i "s/server_name.*;/server_name localhost;/" /etc/nginx/sites-enabled/$SITE_NAME
+    if [[ "$SEARCH_REPLACE" ]]; then
+      sed -i "s/server_name.*;/server_name $AFTER_URL;/" /etc/nginx/sites-enabled/$SITE_NAME
+    else
+      sed -i "s/server_name.*;/server_name localhost;/" /etc/nginx/sites-enabled/$SITE_NAME
+    fi
     STATUS
   fi
 
