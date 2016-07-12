@@ -3,6 +3,7 @@
 ###
 # ENVIRONMENT VARIABLES
 ##
+DEBUG=${DEBUG:-false}
 
 # Build
 LOCALHOST=${LOCALHOST:-false}
@@ -66,14 +67,14 @@ main() {
 
   h2 "Adjusting filesystem permissions"
   h3 "Setting directory permissions to 755"
-  find /var/www/$SITE_NAME -type d -exec chmod 755 {} \; 2>/dev/null
+  find /var/www/$SITE_NAME -type d -exec chmod 755 {} \; |& loglevel
   STATUS
   h3 "Setting file permissions to 644"
-  find /var/www/$SITE_NAME -type f -exec chmod 644 {} \; 2>/dev/null
+  find /var/www/$SITE_NAME -type f -exec chmod 644 {} \; |& loglevel
   STATUS
 
   h2 "Restarting PHP-FPM"
-  /etc/init.d/php$PHP_VERSION-fpm restart &>/dev/null
+  /etc/init.d/php$PHP_VERSION-fpm restart |& loglevel
   h2 "Starting NGINX in the foreground"
   h1 "Setup complete!"
   exec nginx -g "daemon off;"
@@ -92,7 +93,7 @@ initialize() {
   local data_path replacements
 
   h1 "Setting up site. (This can take up to 20 minutes)"
-  dpkg-divert --local --rename --add /sbin/initctl &>/dev/null && ln -sf /bin/true /sbin/initctlq
+  dpkg-divert --local --rename --add /sbin/initctl |& loglevel && ln -sf /bin/true /sbin/initctlq
 
   h2 "Initializing..."
   easyengine_init
@@ -100,7 +101,7 @@ initialize() {
   h2 "Installing and configuring dependencies"
 
   h3 "Installing Adminer"
-  ee stack install --adminer &>/dev/null
+  ee stack install --adminer |& loglevel
   STATUS
 
   h3 "Configuring Adminer login credentials"
@@ -125,7 +126,7 @@ initialize() {
 
   if [[ "$LOCALHOST" == true ]]; then
     if [[ $AFTER_URL =~ (https?://)?(www.)?(.+):[0-9]{2,4} ]]; then
-      h3 "Adjusting NGINX for localhost"
+      h3 "Adjusting NGINX for IP host"
       sed -i "s!server_name.*;!server_name ${BASH_REMATCH[3]};!" /etc/nginx/sites-enabled/$SITE_NAME
       STATUS
     else
@@ -151,7 +152,7 @@ initialize() {
   STATUS
 
   h3 "Setting up database"
-  WP db create &>/dev/null
+  WP db create |& loglevel
   STATUS
 
   # If an SQL file exists in /data => load it
@@ -159,7 +160,7 @@ initialize() {
     data_path=$(find /data/*.sql | head -n 1)
     h2 "Loading data backup from $data_path"
     h3 "Importing data backup"
-    WP db import "$data_path" &>/dev/null
+    WP db import "$data_path" |& loglevel
     STATUS
 
     # If SEARCH_REPLACE is set => Replace URLs
@@ -171,7 +172,7 @@ initialize() {
     fi
   else
     h3 "No database backup found. Initializing new database"
-    WP core install &>/dev/null
+    WP core install |& loglevel
     STATUS
   fi
 
@@ -193,7 +194,7 @@ easyengine_init() {
     "    Cache Type: NGINX fastcgi" \
     "SSL Encryption: $([[ $LOCALHOST == true ]] && echo 'Disabled' || echo 'Enabled')"
 
-  yes 'y' | LC_ALL=en_US.UTF-8 ee site create $options &>/dev/null
+  yes 'y' | LC_ALL=en_US.UTF-8 ee site create $options |& loglevel
 
 }
 
@@ -285,7 +286,7 @@ file_cleanup() {
   h2 "Removing unneeded build dependencies"
 
   h3 "$purgemsg"
-  yes 'yes' | ee stack purge $purges &>/dev/null
+  yes 'yes' | ee stack purge $purges |& loglevel
   STATUS
 
   # TODO: Keep adding to this list
@@ -293,7 +294,7 @@ file_cleanup() {
   DEBIAN_FRONTEND=noninteractive apt-get remove -yqq --purge --auto-remove \
     manpages \
     manpages-dev \
-  &>/dev/null
+  |& loglevel
   STATUS
 
   h3 "Clearing apt-cache"
@@ -312,7 +313,7 @@ case "$1" in
 wp-cli)
 cat > /wp-cli.yml <<EOF
 path: /var/www/$SITE_NAME/htdocs
-quiet: true
+quiet: $([ "$DEBUG" ] && echo 'false' || echo 'true')
 
 core config:
   dbuser: $DB_USER
@@ -434,6 +435,14 @@ ERROR() {
 
 WP() {
   sudo -u www-data wp "$@"
+}
+
+loglevel() {
+  [[ $DEBUG == false ]] && return
+  local IN
+  while read IN; do
+    echo $IN
+  done
 }
 
 main
