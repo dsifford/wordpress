@@ -89,17 +89,13 @@ main() {
 # This function is ran only if a folder named $SITE_NAME
 # doesn't exist within /var/www
 initialize() {
-  local data_path loaderpid replacements
+  local data_path replacements
 
   h1 "Setting up site. (This can take up to 20 minutes)"
   dpkg-divert --local --rename --add /sbin/initctl &>/dev/null && ln -sf /bin/true /sbin/initctlq
 
-  loader Installing&
-  loaderpid=$!
+  h2 "Initializing..."
   easyengine_init
-
-  echo -e "$ORANGE$BOLD==>$NC$BOLD Installing$NC $GREEN✓$NC" && kill $loaderpid
-  wait $loaderpid 2>/dev/null
 
   h2 "Installing and configuring dependencies"
 
@@ -191,7 +187,7 @@ easyengine_init() {
   [[ $PHP_VERSION == 7.0 ]] && options+='--php7 '
   [[ $LOCALHOST != true ]]&& options+='--letsencrypt'
 
-  h2 "Preparing WordPress Stack for $SITE_NAME"
+  h2 "Installing WordPress Stack for $SITE_NAME"
   printf "    | %s\n" \
     "   PHP Version: $PHP_VERSION" \
     "    Cache Type: NGINX fastcgi" \
@@ -389,27 +385,6 @@ esac
 }
 
 ###
-# Loading Spinner
-##
-loader() {
-  local sec min spinner
-  min=$((-1))
-  spinner=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
-  sleep 2
-  while [[ true ]]; do
-    sec=$((0))
-    min=$(($min+1))
-    while [[ $sec -lt 60 ]]; do
-      for i in "${spinner[@]}"; do
-        printf "${ORANGE}${BOLD}==>${NC}${BOLD} $*${NC} ${PINK}%s${NC} (%02d:%02d elapsed)\r" $i $min $sec
-        sleep 0.1
-      done
-      sec=$(($sec+1))
-    done
-  done
-}
-
-###
 # HELPERS
 ##
 
@@ -417,7 +392,6 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 ORANGE='\033[0;33m'
 PURPLE='\033[0;34m'
-PINK='\033[0;35m'
 CYAN='\033[0;36m'
 BOLD='\E[1m'
 NC='\033[0m'
