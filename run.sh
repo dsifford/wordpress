@@ -127,11 +127,11 @@ initialize() {
   if [[ "$LOCALHOST" == true ]]; then
     if [[ $AFTER_URL =~ (https?://)?(www.)?(.+):[0-9]{2,4} ]]; then
       h3 "Adjusting NGINX for IP host"
-      sed -i "s!server_name.*;!server_name ${BASH_REMATCH[3]};!" /etc/nginx/sites-enabled/$SITE_NAME
+      sed -i --follow-symlinks "s!server_name.*;!server_name ${BASH_REMATCH[3]};!" /etc/nginx/sites-enabled/$SITE_NAME
       STATUS
     else
       h3 "Adjusting NGINX for localhost"
-      sed -i "s/server_name.*;/server_name localhost;/" /etc/nginx/sites-enabled/$SITE_NAME
+      sed -i --follow-symlinks "s/server_name.*;/server_name localhost;/" /etc/nginx/sites-enabled/$SITE_NAME
       STATUS
     fi
   fi
