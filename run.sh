@@ -313,7 +313,7 @@ case "$1" in
 wp-cli)
 cat > /wp-cli.yml <<EOF
 path: /var/www/$SITE_NAME/htdocs
-quiet: $([ "$DEBUG" ] && echo 'false' || echo 'true')
+quiet: $([[ "$DEBUG" == "true" ]] && echo 'false' || echo 'true')
 
 core config:
   dbuser: $DB_USER
@@ -438,7 +438,7 @@ WP() {
 }
 
 loglevel() {
-  [[ $DEBUG == false ]] && return
+  [[ "$DEBUG" == "false" ]] && return
   local IN
   while read IN; do
     echo $IN
