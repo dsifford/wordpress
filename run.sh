@@ -186,7 +186,7 @@ easyengine_init() {
   local options="$SITE_NAME --wpfc "
 
   [[ $PHP_VERSION == 7.0 ]] && options+='--php7 '
-  [[ $LOCALHOST != true ]]&& options+='--letsencrypt'
+  # [[ $LOCALHOST != true ]]&& options+='--letsencrypt' FIXME: This is broken
 
   h2 "Installing WordPress Stack for $SITE_NAME"
   printf "    | %s\n" \

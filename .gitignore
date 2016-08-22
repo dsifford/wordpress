@@ -2,3 +2,4 @@ config/default.conf
 test.sh
 docker-compose.yml
 data
+.env
