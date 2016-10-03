@@ -208,9 +208,13 @@ check_themes() {
     fi
 
     # If $theme_name matches a URL using the new format => set $theme_name & $theme_url
+    # If url is from github, correct for the branch name in the plugin name
     if [[ $theme_name =~ ^\[.+\]https?://[www]?.+ ]]; then
       theme_url=${theme_name##\[*\]}
       theme_name="$(echo "$theme_name" | grep -oP '\[\K(.+)(?=\])')"
+      if [[ $theme_url =~ github.com ]]; then
+        theme_name=${theme_name%-*}
+      fi
     fi
 
     theme_url=${theme_url:-$theme_name}
@@ -292,9 +296,13 @@ check_plugins() {
     fi
 
     # If $plugin_name matches a URL using the new format => set $plugin_name & $plugin_url
+    # If url is from github, correct for the branch name in the plugin name
     if [[ $plugin_name =~ ^\[.+\]https?://[www]?.+ ]]; then
       plugin_url=${plugin_name##\[*\]}
       plugin_name="$(echo "$plugin_name" | grep -oP '\[\K(.+)(?=\])')"
+      if [[ $plugin_url =~ github.com ]]; then
+        plugin_name=${plugin_name%-*}
+      fi
     fi
 
     plugin_url=${plugin_url:-$plugin_name}
