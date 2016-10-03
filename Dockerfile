@@ -12,7 +12,7 @@ RUN apt-get update \
 WORKDIR /app
 RUN curl \
         -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
-        -o /run.sh https://raw.githubusercontent.com/dsifford/wordpress/master/run.sh \
+        -o /run.sh https://raw.githubusercontent.com/dsifford/wordpress/apache-next/run.sh \
     && chmod +x /usr/local/bin/wp /run.sh \
     && sed -i "s/AllowOverride None/AllowOverride All/g" /etc/apache2/apache2.conf \
     && a2enmod rewrite \
