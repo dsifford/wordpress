@@ -203,7 +203,6 @@ check_themes() {
 
     # Locally volumed themes
     if [[ $theme_name =~ ^\[local\] ]]; then
-      h1 "$theme_name"
       themes["${theme_name##*]}"]="${theme_name##*]}"
       continue
     fi
@@ -311,7 +310,7 @@ check_plugins() {
       # Pretty much guarenteed to need/want 'restful' if you are using 'rest-api'
       if [ "$plugin_name" == 'rest-api' ]; then
         h3 "       Installing 'restful' WP-CLI package"
-        WP package install danielbachhuber/resftul --quiet
+        wp package install danielbachhuber/resftul --quiet --allow-root
         STATUS $?
       fi
     fi
