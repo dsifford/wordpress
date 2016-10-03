@@ -125,7 +125,7 @@ initialize() {
   STATUS
 
   h3 "Updating to WP-CLI nightly"
-  wp cli update --nightly --yes --allow-root
+  WP cli update --nightly --yes
   STATUS
 
   h3 "Configuring PHP-FPM"
@@ -191,7 +191,7 @@ initialize() {
 
 # Still pretty featureless, but this will be used to create the build string
 easyengine_init() {
-  local options="$SITE_NAME --wpfc "
+  local options="$SITE_NAME --wpfc --wpcli "
 
   [[ $PHP_VERSION == 7.0 ]] && options+='--php7 '
   # [[ $LOCALHOST != true ]]&& options+='--letsencrypt' FIXME: This is broken
@@ -203,6 +203,8 @@ easyengine_init() {
     "SSL Encryption: $([[ $LOCALHOST == true ]] && echo 'Disabled' || echo 'Enabled')"
 
   yes 'y' | LC_ALL=en_US.UTF-8 ee site create "$options" |& loglevel
+
+  wp cli --info --allow-root
 
 }
 
@@ -251,7 +253,7 @@ check_plugins() {
         STATUS
         if [ "$plugin_name" == 'rest-api' ]; then
           h3 "Installing 'restful' WP-CLI package"
-          wp package install wp-cli/restful --allow-root
+          WP package install wp-cli/restful
           STATUS
         fi
       fi
@@ -442,7 +444,10 @@ ERROR() {
 }
 
 WP() {
-  sudo -u www-data wp "$@"
+  sudo -u www-data wp "$@" && return || echo 'nope 1'
+  /usr/local/bin/wp "$@" --allow-root && return || echo 'nope 2'
+  sudo wp "$@" --allow-root && return || echo 'nope 3'
+  sudo /usr/local/bin/wp "$@" --allow-root && return || echo 'nope 4'
 }
 
 loglevel() {
