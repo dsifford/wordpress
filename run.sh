@@ -60,7 +60,7 @@ main() {
   # Wait for MySQL
   # --------------
   h2 "Waiting for MySQL to initialize..."
-  while ! mysqladmin ping --host=$DB_HOST --password="$DB_PASS" --silent; do
+  while ! mysqladmin ping --host="$DB_HOST" --password="$DB_PASS" --silent; do
     sleep 1
   done
 
@@ -203,8 +203,8 @@ check_themes() {
 
     # Locally volumed themes
     if [[ $theme_name =~ ^\[local\] ]]; then
-      theme_name="$(echo "$theme_name" | grep -oP '\[\K(.+)(?=\])')"
-      themes[$theme_name]=$theme_name
+      h1 "$theme_name"
+      themes["${theme_name##*]}"]="${theme_name##*]}"
       continue
     fi
 
@@ -288,8 +288,7 @@ check_plugins() {
 
     # Locally volumed plugins
     if [[ $plugin_name =~ ^\[local\] ]]; then
-      plugin_name="$(echo "$plugin_name" | grep -oP '\[\K(.+)(?=\])')"
-      plugins[$plugin_name]=$plugin_name
+      plugins["${plugin_name##*]}"]="${plugin_name##*]}"
       continue
     fi
 
