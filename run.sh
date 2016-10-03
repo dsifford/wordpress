@@ -134,7 +134,7 @@ check_database() {
     STATUS "${PIPESTATUS[0]}"
 
     # If an SQL file exists in /data => load it
-    if [ "$(stat -t /data/*.sql >/dev/null 2>&1)" ]; then
+    if [[ "$(find /data -name '*.sql' | wc -l)" != "0" ]]; then
       DATA_PATH=$(find /data/*.sql | head -n 1)
       h3 "Loading data backup from $DATA_PATH"
 
