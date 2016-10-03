@@ -163,6 +163,7 @@ check_database() {
 
 check_themes() {
   declare -A themes
+  declare -A local_themes
   local -i theme_count=0
   local -i i=1
   local theme_name
@@ -197,6 +198,13 @@ check_themes() {
       h3 "($i/$theme_count) '$theme_name' not found. Installing"
       WP theme install --quiet "$theme_name"
       STATUS $?
+      continue
+    fi
+
+    # Locally volumed themes
+    if [[ $theme_name =~ ^\[local\] ]]; then
+      theme_name="$(echo "$theme_name" | grep -oP '\[\K(.+)(?=\])')"
+      themes[$theme_name]=$theme_name
       continue
     fi
 
@@ -275,6 +283,13 @@ check_plugins() {
       h3 "($i/$plugin_count) '$plugin_name' not found. Installing"
       WP plugin install --activate --quiet "$plugin_name"
       STATUS $?
+      continue
+    fi
+
+    # Locally volumed plugins
+    if [[ $plugin_name =~ ^\[local\] ]]; then
+      plugin_name="$(echo "$plugin_name" | grep -oP '\[\K(.+)(?=\])')"
+      plugins[$plugin_name]=$plugin_name
       continue
     fi
 
