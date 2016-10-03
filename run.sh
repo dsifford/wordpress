@@ -30,7 +30,7 @@ DB_USER=${DB_USER:-root}
 ADMIN_EMAIL=${ADMIN_EMAIL:-"admin@$DB_NAME.com"}
 SITE_NAME=${SITE_NAME:-wordpress} && \
   if [[ $SITE_NAME == 'wordpress' && $LOCALHOST != true ]]; then
-    ERROR $(($LINENO-2)) "SITE_NAME must be set if not running on localhost"
+    ERROR $((LINENO-2)) "SITE_NAME must be set if not running on localhost"
   fi
 THEMES=${THEMES:-twentysixteen}
 WP_DEBUG_DISPLAY=${WP_DEBUG_DISPLAY:-true}
@@ -45,7 +45,7 @@ WP_DEBUG=${WP_DEBUG:-false}
 main() {
 
   # If no site directory exists, then this must be the initial installation
-  if [ ! -e /var/www/$SITE_NAME/htdocs/wp-config.php ]; then
+  if [ ! -e /var/www/"$SITE_NAME"/htdocs/wp-config.php ]; then
     initialize
   else
     h1 "Restarting containers from stopped state"
@@ -53,7 +53,7 @@ main() {
 
   # Be sure MySQL is ready for connections at this point
   echo -en "${ORANGE}${BOLD}==>${NC}${BOLD} Waiting for MySQL to initialize...."
-  while ! mysqladmin ping --host=db --password=$DB_PASS &>/dev/null; do
+  while ! mysqladmin ping --host=db --password="$DB_PASS" &>/dev/null; do
     sleep 1
   done
   echo -e "Ready!${NC}"
@@ -61,25 +61,33 @@ main() {
   check_plugins
 
   # Garbage collect on initial build
-  if [ -d /var/www/$SITE_NAME/htdocs/wp-content/plugins/akismet ]; then
+  if [ -d /var/www/"$SITE_NAME"/htdocs/wp-content/plugins/akismet ]; then
     wordpress_init
   fi
 
   h2 "Adjusting filesystem permissions"
   h3 "Setting directory permissions to 755"
-  find /var/www/$SITE_NAME -type d -exec chmod 755 {} \; |& loglevel
+  find /var/www/"$SITE_NAME" -type d -exec chmod 755 {} \; |& loglevel
   STATUS
   h3 "Setting file permissions to 644"
-  find /var/www/$SITE_NAME -type f -exec chmod 644 {} \; |& loglevel
+  find /var/www/"$SITE_NAME" -type f -exec chmod 644 {} \; |& loglevel
   STATUS
 
-  h2 "Restarting PHP-FPM"
-  /etc/init.d/php$PHP_VERSION-fpm restart |& loglevel
+  # h2 "Restarting PHP-FPM"
+  # /etc/init.d/php"$PHP_VERSION"-fpm restart |& loglevel
   h2 "Starting NGINX in the foreground"
   h1 "Setup complete!"
+  reload_server&
   exec nginx -g "daemon off;"
 }
 
+
+# FIXME
+reload_server() {
+  sleep 10
+  /etc/init.d/php"$PHP_VERSION"-fpm restart
+  service nginx reload
+}
 
 ###
 # Separation of concerns
@@ -105,7 +113,7 @@ initialize() {
   STATUS
 
   h3 "Configuring Adminer login credentials"
-  ee secure --auth $DB_USER $DB_PASS
+  ee secure --auth "$DB_USER" "$DB_PASS"
   STATUS
   echo "     Adminer Username: $DB_USER"
   echo "     Adminer Password: $DB_PASS"
@@ -127,11 +135,11 @@ initialize() {
   if [[ "$LOCALHOST" == true ]]; then
     if [[ $AFTER_URL =~ (https?://)?(www.)?(.+):[0-9]{2,4} ]]; then
       h3 "Adjusting NGINX for IP host"
-      sed -i --follow-symlinks "s!server_name.*;!server_name ${BASH_REMATCH[3]};!" /etc/nginx/sites-enabled/$SITE_NAME
+      sed -i --follow-symlinks "s!server_name.*;!server_name ${BASH_REMATCH[3]};!" /etc/nginx/sites-enabled/"$SITE_NAME"
       STATUS
     else
       h3 "Adjusting NGINX for localhost"
-      sed -i --follow-symlinks "s/server_name.*;/server_name localhost;/" /etc/nginx/sites-enabled/$SITE_NAME
+      sed -i --follow-symlinks "s/server_name.*;/server_name localhost;/" /etc/nginx/sites-enabled/"$SITE_NAME"
       STATUS
     fi
   fi
@@ -194,7 +202,7 @@ easyengine_init() {
     "    Cache Type: NGINX fastcgi" \
     "SSL Encryption: $([[ $LOCALHOST == true ]] && echo 'Disabled' || echo 'Enabled')"
 
-  yes 'y' | LC_ALL=en_US.UTF-8 ee site create $options |& loglevel
+  yes 'y' | LC_ALL=en_US.UTF-8 ee site create "$options" |& loglevel
 
 }
 
@@ -216,7 +224,7 @@ check_plugins() {
 
       # If plugin matches a URL
       if [[ $plugin_name =~ ^https?://[www]?.+ ]]; then
-        echo $plugin_name 'matches URL'
+        echo "$plugin_name" 'matches URL'
         h3 "Can't check if plugin is already installed using this format!" && STATUS SKIP
         h3 "Switch your compose file to [plugin-slug]http://pluginurl.com for better checks" && STATUS SKIP
         h3 "($((i+1))/${#plugin[@]}) '$plugin_name' not found. Installing"
@@ -228,7 +236,7 @@ check_plugins() {
       # If plugin matches a URL in new URL format
       if [[ $plugin_name =~ ^\[.+\]https?://[www]?.+ ]]; then
         plugin_url=${plugin_name##\[*\]}
-        plugin_name="$(echo $plugin_name | grep -oP '\[\K(.+)(?=\])')"
+        plugin_name="$(echo "$plugin_name" | grep -oP '\[\K(.+)(?=\])')"
       fi
 
       plugin_url=${plugin_url:-$plugin_name}
@@ -241,7 +249,7 @@ check_plugins() {
         h3 "($((i+1))/${#plugin[@]}) '$plugin_name' not found. Installing"
         WP plugin --activate install "$plugin_url"
         STATUS
-        if [ $plugin_name == 'rest-api' ]; then
+        if [ "$plugin_name" == 'rest-api' ]; then
           h3 "Installing 'restful' WP-CLI package"
           wp package install wp-cli/restful --allow-root
           STATUS
@@ -269,7 +277,7 @@ wordpress_init() {
     done
     WP theme delete "${remove_list[@]}"
     STATUS
-  done <<< $THEMES
+  done <<< "$THEMES"
 
   h3 "Installing needed themes"
   WP theme install "${theme_list[@]}"
@@ -286,7 +294,7 @@ file_cleanup() {
   h2 "Removing unneeded build dependencies"
 
   h3 "$purgemsg"
-  yes 'yes' | ee stack purge $purges |& loglevel
+  yes 'yes' | ee stack purge "$purges" |& loglevel
   STATUS
 
   # TODO: Keep adding to this list
@@ -337,7 +345,7 @@ EOF
 
 php-fpm)
 mkdir -p /run/php
-cat > /etc/php/$PHP_VERSION/fpm/php-fpm.conf <<EOF
+cat > /etc/php/"$PHP_VERSION"/fpm/php-fpm.conf <<EOF
 [global]
 daemonize = no
 pid = /run/php/php$PHP_VERSION-fpm.pid
@@ -400,11 +408,11 @@ NC='\033[0m'
 h1() {
   local len=$(($(tput cols)-1))
   local input=$*
-  local size=$((($len - ${#input})/2))
+  local size=$(((len - ${#input})/2))
 
-  for ((i = 0; i < $len; i++)); do echo -ne "${PURPLE}${BOLD}="; done; echo ""
-  for ((i = 0; i < $size; i++)); do echo -n " "; done; echo -e "${NC}${BOLD}$input"
-  for ((i = 0; i < $len; i++)); do echo -ne "${PURPLE}${BOLD}="; done; echo -e "${NC}"
+  for ((i = 0; i < "$len"; i++)); do echo -ne "${PURPLE}${BOLD}="; done; echo ""
+  for ((i = 0; i < "$size"; i++)); do echo -n " "; done; echo -e "${NC}${BOLD}$input"
+  for ((i = 0; i < "$len"; i++)); do echo -ne "${PURPLE}${BOLD}="; done; echo -e "${NC}"
 }
 
 h2() {
@@ -440,8 +448,8 @@ WP() {
 loglevel() {
   [[ "$DEBUG" == "false" ]] && return
   local IN
-  while read IN; do
-    echo $IN
+  while read -r IN; do
+    echo "$IN"
   done
 }
 
