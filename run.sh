@@ -204,6 +204,8 @@ check_themes() {
     # Locally volumed themes
     if [[ $theme_name =~ ^\[local\] ]]; then
       themes["${theme_name##*]}"]="${theme_name##*]}"
+      h3 "($i/$theme_count) '${theme_name##*]}' listed as a local volume. SKIPPING..."
+      STATUS SKIP
       continue
     fi
 
@@ -292,6 +294,8 @@ check_plugins() {
     # Locally volumed plugins
     if [[ $plugin_name =~ ^\[local\] ]]; then
       plugins["${plugin_name##*]}"]="${plugin_name##*]}"
+      h3 "($i/$plugin_count) '${plugin_name##*]}' listed as a local volume. SKIPPING..."
+      STATUS SKIP
       continue
     fi
 
@@ -317,8 +321,8 @@ check_plugins() {
       STATUS $?
       # Pretty much guarenteed to need/want 'restful' if you are using 'rest-api'
       if [ "$plugin_name" == 'rest-api' ]; then
-        h3 "       Installing 'restful' WP-CLI package"
-        wp package install danielbachhuber/resftul --quiet --allow-root
+        h3 "($i.5/$plugin_count) Installing 'restful' WP-CLI package"
+        wp package install wp-cli/resftul --quiet --allow-root
         STATUS $?
       fi
     fi
