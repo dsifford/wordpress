@@ -198,6 +198,7 @@ check_themes() {
       h3 "($i/$theme_count) '$theme_name' not found. Installing"
       WP theme install --quiet "$theme_name"
       STATUS $?
+      ((i++))
       continue
     fi
 
@@ -206,6 +207,7 @@ check_themes() {
       themes["${theme_name##*]}"]="${theme_name##*]}"
       h3 "($i/$theme_count) '${theme_name##*]}' listed as a local volume. SKIPPING..."
       STATUS SKIP
+      ((i++))
       continue
     fi
 
@@ -288,6 +290,7 @@ check_plugins() {
       h3 "($i/$plugin_count) '$plugin_name' not found. Installing"
       WP plugin install --activate --quiet "$plugin_name"
       STATUS $?
+      ((i++))
       continue
     fi
 
@@ -296,6 +299,7 @@ check_plugins() {
       plugins["${plugin_name##*]}"]="${plugin_name##*]}"
       h3 "($i/$plugin_count) '${plugin_name##*]}' listed as a local volume. SKIPPING..."
       STATUS SKIP
+      ((i++))
       continue
     fi
 
