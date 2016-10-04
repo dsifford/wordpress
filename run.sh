@@ -322,7 +322,7 @@ check_plugins() {
       # Pretty much guarenteed to need/want 'restful' if you are using 'rest-api'
       if [ "$plugin_name" == 'rest-api' ]; then
         h3 "($i.5/$plugin_count) Installing 'restful' WP-CLI package"
-        wp package install wp-cli/resftul --quiet --allow-root
+        wp package install wp-cli/restful --quiet --allow-root
         STATUS $?
       fi
     fi
