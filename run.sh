@@ -303,7 +303,8 @@ check_plugins() {
     if [[ $plugin_name =~ ^\[local\] ]]; then
       plugins["${plugin_name##*]}"]="${plugin_name##*]}"
       h3 "($i/$plugin_count) '${plugin_name##*]}' listed as a local volume. Activating..."
-      WP plugin activate ${plugin_name##*]}
+      WP plugin activate --quiet "${plugin_name##*]}"
+      STATUS
       ((i++))
       continue
     fi
