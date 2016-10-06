@@ -134,7 +134,7 @@ check_database() {
     STATUS "${PIPESTATUS[0]}"
 
     # If an SQL file exists in /data => load it
-    if [[ "$(find /data -name '*.sql' | wc -l)" != "0" ]]; then
+    if [[ "$(find /data -name '*.sql' 2>/dev/null | wc -l)" != "0" ]]; then
       DATA_PATH=$(find /data/*.sql | head -n 1)
       h3 "Loading data backup from $DATA_PATH"
 
@@ -163,7 +163,6 @@ check_database() {
 
 check_themes() {
   declare -A themes
-  declare -A local_themes
   local -i theme_count=0
   local -i i=1
   local theme_name
@@ -182,6 +181,9 @@ check_themes() {
     done <<< "$(WP theme list --field=name)"
     return
   fi
+
+  # Correct for cases where user forgets to add trailing comma
+  [[ "${THEMES:(-1)}" != ',' ]] && THEMES+=','
 
   # Set $theme_count to the total number of themes set in $THEMES
   while read -r -d,; do ((theme_count++)); done <<< "$THEMES"
@@ -268,12 +270,15 @@ check_plugins() {
     STATUS SKIP
     h2 "Checking for orphaned plugins"
     while read -r plugin_name; do
-      h3 "'$plugin_name' no longer needed. Pruning"
+      h3 "'$plugin_name' no longer needed. Pruning..."
       WP plugin uninstall --deactivate --quiet "$plugin_name"
       STATUS $?
     done <<< "$(WP plugin list --field=name)"
     return
   fi
+
+  # Correct for cases where user forgets to add trailing comma
+  [[ "${PLUGINS:(-1)}" != ',' ]] && PLUGINS+=','
 
   # Set $plugin_count to the total number of plugins set in $PLUGINS
   while read -r -d,; do ((plugin_count++)); done <<< "$PLUGINS"
@@ -287,7 +292,7 @@ check_plugins() {
       h3warn "$plugin_name"
       h3warn "Can't check if plugin is already installed using above format!"
       h3warn "Switch your compose file to '[plugin-slug]http://pluginurl.com/pluginfile.zip' for better checks"
-      h3 "($i/$plugin_count) '$plugin_name' not found. Installing"
+      h3 "($i/$plugin_count) '$plugin_name' not found. Installing..."
       WP plugin install --activate --quiet "$plugin_name"
       STATUS $?
       ((i++))
@@ -297,8 +302,8 @@ check_plugins() {
     # Locally volumed plugins
     if [[ $plugin_name =~ ^\[local\] ]]; then
       plugins["${plugin_name##*]}"]="${plugin_name##*]}"
-      h3 "($i/$plugin_count) '${plugin_name##*]}' listed as a local volume. SKIPPING..."
-      STATUS SKIP
+      h3 "($i/$plugin_count) '${plugin_name##*]}' listed as a local volume. Activating..."
+      WP plugin activate ${plugin_name##*]}
       ((i++))
       continue
     fi
@@ -320,12 +325,12 @@ check_plugins() {
       h3 "($i/$plugin_count) '$plugin_name' found. SKIPPING..."
       STATUS SKIP
     else
-      h3 "($i/$plugin_count) '$plugin_name' not found. Installing"
+      h3 "($i/$plugin_count) '$plugin_name' not found. Installing..."
       WP plugin install --activate --quiet "$plugin_url"
       STATUS $?
       # Pretty much guarenteed to need/want 'restful' if you are using 'rest-api'
       if [ "$plugin_name" == 'rest-api' ]; then
-        h3 "($i.5/$plugin_count) Installing 'restful' WP-CLI package"
+        h3 "($i.5/$plugin_count) Installing 'restful' WP-CLI package..."
         wp package install wp-cli/restful --quiet --allow-root
         STATUS $?
       fi
@@ -338,7 +343,7 @@ check_plugins() {
   h2 "Checking for orphaned plugins"
   while read -r plugin_name; do
     if [[ ! ${plugins[$plugin_name]} ]]; then
-      h3 "'$plugin_name' no longer needed. Pruning"
+      h3 "'$plugin_name' no longer needed. Pruning..."
       WP plugin uninstall --deactivate --quiet "$plugin_name"
       STATUS $?
     fi
