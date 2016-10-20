@@ -53,9 +53,9 @@ main() {
   # ------------------
   if [ ! -f /app/wp-settings.php ]; then
     h2 "Installing wordpress"
+    h3 "Downloading..."
     chown -R www-data:www-data /app /var/www/html
     WP core download |& loglevel
-    h3 "Downloading..."
     STATUS "${PIPESTATUS[0]}"
   fi
 
@@ -68,9 +68,9 @@ main() {
   done
 
   h2 "Configuring wordpress"
+  h3 "Generating wp-config.php file..."
   rm -f /app/wp-config.php
   WP core config |& loglevel
-  h3 "Generating wp-config.php file..."
   STATUS "${PIPESTATUS[0]}"
 
   h2 "Checking database"
