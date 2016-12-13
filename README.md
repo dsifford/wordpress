@@ -1,3 +1,8 @@
+# UNMAINTAINED
+I now contribute directly to [visiblevc/wordpress-starter](https://github.com/visiblevc/wordpress-starter). Because of that, this project is no longer maintained. Use at your own risk.
+
+If you've used this project in the past and like it, consider using `wordpress-starter`.
+
 ### dsifford/wordpress
 > A disposable Docker WordPress environment that just works, inspired by [visiblevc/wordpress-starter](https://github.com/visiblevc/wordpress-starter).
 

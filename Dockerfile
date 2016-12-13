@@ -1,5 +1,5 @@
 FROM tutum/apache-php
-MAINTAINER Derek P Sifford <dereksifford@gmail.com>
+MAINTAINER UNMAINTAINED 
 
 # Install mysql-client
 RUN apt-get update \
